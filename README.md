@@ -14,51 +14,72 @@ simulador sin el robot y después lo ejecutan igual en el brazo real.
 
 ## Usarlo
 
-1. Abre `index.html` en Chrome o Edge. Necesita internet la primera vez, porque
-   carga el intérprete de Python (Skulpt), el motor 3D (Three.js) y el editor
-   (CodeMirror) desde CDN.
-2. Escribe el código, elige la herramienta (ventosa, pinza, pluma o láser) y pulsa **Ejecutar**
-   (o Ctrl+Enter).
-3. El código se guarda solo en el navegador de cada alumno.
+1. Open `index.html` in Chrome or Edge. It needs internet the first time,
+   because it loads the Python interpreter (Skulpt), the 3D engine (Three.js)
+   and the editor (CodeMirror) from a CDN.
+2. Write your code and press **Ejecutar** (Run, or Ctrl+Enter). The tool
+   (suction cup, gripper, pen or laser) is selected in the sidebar.
+3. Each student's code is saved automatically in their own browser.
 
-## Controles manuales del brazo
+## The interface
 
-Además de ejecutar programas de Python, la página permite manejar el brazo a mano:
+The page is divided into a sidebar, a main section and, on the right, the 3D
+scene with the manual movement panel, which stays visible in every section
+except «Funciones» (Functions) and «Robot». The sidebar holds the navigation,
+the tool selector, a light/dark theme toggle and the connection status. You
+jump between sections with Ctrl+1…7 (Cmd+1…7 on Mac), in this order:
 
-- **Parada de emergencia** (botón rojo, arriba a la derecha): aborta el
-  movimiento del brazo (comando `M410`, el mismo que usa el programa Huenit)
-  y detiene el programa en marcha.
-- **Mover** (panel bajo la escena 3D): cruceta para X/Y, botones Z+/Z− y
-  botón de casa. También con el teclado: las flechas mueven en X/Y,
-  Re Pág/Av Pág en Z e Inicio vuelve a casa. El selector **Paso** fija los
-  milímetros de cada movimiento (1, 5, 10 o 25 mm) y el deslizador
-  **Velocidad** lo hace más lento (en el robot conectado se intenta enviar
-  como `M220`, si el firmware lo acepta).
-- **Consola G-code** (pestaña «Comandos al robot»): escribe un comando y pulsa
-  Enter para probarlo en la simulación y, si está conectado, en el brazo.
-  Entiende `help` (lista de comandos) y `clear` (limpiar), y guarda el
-  historial con las flechas ↑ ↓.
-- **Teach & Play** (pestaña «Teach & Play»): enseña al brazo una secuencia
-  paso a paso. Mueve el brazo con el panel «Mover» (o con un programa), pulsa
-  **Añadir paso** para guardar la posición y ajusta en cada paso el modo de
-  movimiento (arco/lineal/sin mover), la acción de la herramienta (ventosa o
-  pinza) y una pausa T en segundos — el mismo modelo de macro del programa
-  Huenit. **Reproducir** ejecuta la macro en la simulación y en el robot
-  conectado a la vez (se puede parar con Detener o la parada de emergencia), y
-  **Copiar G-code** exporta la macro como comandos listos para la consola del
-  programa Huenit. La macro se guarda sola en el navegador.
-- **Pluma** (selector de herramienta «Portabolígrafos»): cuando la punta toca
-  la mesa el brazo dibuja en ella, con cualquier movimiento (programa,
-  «Mover», consola o macro). El ejemplo «Pluma: dibujar un cuadrado» traza un
-  cuadrado de 100 mm con `moveG1`. Su Z de mesa (≈ −50) es aproximada: mide
-  la de tu robot, porque en el programa Huenit la profundidad de dibujo es
-  configurable. **Reiniciar escena** borra también el dibujo.
-- **Láser** (selector «Láser (grabado)»): `robot.laserOn()` / `robot.laserOff()`
-  encienden y apagan el haz (comandos `M3` / `M5`); al pasar por la altura
-  focal deja la marca de grabado en la mesa. El ejemplo «Láser: grabar un
-  cuadrado» lo muestra. **El láser real quema: solo con el robot conectado y
-  supervisado**, con el mismo cuidado que el modo láser del programa Huenit.
-  Su Z de mesa (≈ −45) es aproximada: mide la de tu robot.
+1. **Programar** (Program) — Python editor with the examples and the Run / Stop / Reset buttons.
+2. **Consola** (Console) — what the program prints, with a Clear button.
+3. **Comandos al robot** (Commands to the robot) — interactive G-code console.
+4. **Teach & Play** — macro recorder.
+5. **Escena** (Scene) — position of the objects on the table.
+6. **Funciones** (Functions) — `robot` library reference.
+7. **Robot** — running the same code on the real arm and USB connection.
+
+When you run a program (or an error occurs) the view switches automatically
+to **Consola** so you can see what happens.
+
+## Manual arm controls
+
+Besides running Python programs, the page lets you drive the arm by hand:
+
+- **Emergency stop** (red button, top right): aborts the arm's movement
+  (command `M410`, the same one the Huenit program uses) and stops the
+  running program.
+- **Mover** (panel on the right, visible in every section except «Funciones»
+  and «Robot»): X/Y crosspad, Z+/Z− buttons
+  and a home button. Also from the keyboard: arrow keys move in X/Y,
+  Page Down/Page Up in Z, and Home returns to the home position. The
+  **Paso** (Step) selector sets the millimeters per move (1, 5, 10 or 25 mm)
+  and the **Velocidad** (Speed) slider slows it down (with a connected robot
+  it tries to send it as `M220`, if the firmware accepts it).
+- **G-code console** (section «Comandos al robot»): type a command and press
+  Enter to try it in the simulation and, if connected, on the arm. It
+  understands `help` (command list) and `clear`, and keeps history with the
+  ↑ ↓ arrow keys.
+- **Teach & Play** (section «Teach & Play»): teach the arm a sequence step by
+  step. Move the arm with the «Mover» panel on the right (or with a program), press
+  **Añadir paso** (Add step) to save the position, and adjust each step's
+  movement mode (arc/linear/no move), tool action (suction cup or gripper)
+  and a T pause in seconds — the same macro model as the Huenit program.
+  **Reproducir** (Play) runs the macro in the simulation and on the connected
+  robot at the same time (it can be stopped with Detener or the emergency
+  stop), and **Copiar G-code** exports the macro as commands ready for the
+  Huenit program's console. The macro is saved automatically in the browser.
+- **Pen** (tool selector «Portabolígrafos»): when the tip touches the table
+  the arm draws on it, with any movement (program, «Mover», console or
+  macro). The example «Pluma: dibujar un cuadrado» (Pen: draw a square)
+  traces a 100 mm square with `moveG1`. Its table Z (≈ −50) is approximate:
+  measure your robot's, because drawing depth is configurable in the Huenit
+  program. **Reiniciar escena** (Reset scene) also erases the drawing.
+- **Laser** (selector «Láser (grabado)»): `robot.laserOn()` / `robot.laserOff()`
+  turn the beam on and off (commands `M3` / `M5`); passing through the focal
+  height leaves an engraving mark on the table. The example «Láser: grabar un
+  cuadrado» (Laser: engrave a square) shows it. **The real laser burns: use it
+  only with the robot connected and supervised**, with the same care as the
+  Huenit program's laser mode. Its table Z (≈ −45) is approximate: measure
+  your robot's.
 
 ## Pasar al robot real
 
