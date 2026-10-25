@@ -28,16 +28,17 @@ La página se divide en una barra lateral, una sección principal y, a la
 derecha, la escena 3D con el panel de movimiento manual, que se ve en todas
 las secciones excepto «Funciones» y «Robot». La barra lateral lleva la
 navegación, el selector de herramienta, un botón de tema claro/oscuro y el
-estado de la conexión. Se salta de sección con Ctrl+1…7 (Cmd+1…7 en Mac), en
+estado de la conexión. Se salta de sección con Ctrl+1…8 (Cmd+1…8 en Mac), en
 este orden:
 
 1. **Programar** — editor Python con los ejemplos y los botones Ejecutar / Detener / Reiniciar.
 2. **Consola** — lo que imprime el programa, con botón Limpiar.
 3. **Comandos al robot** — consola G-code interactiva.
 4. **Teach & Play** — grabador de macros.
-5. **Escena** — posición de los objetos en la mesa.
-6. **Funciones** — referencia de la librería `robot`.
-7. **Robot** — ejecutar el mismo código en el brazo real y conexión por USB.
+5. **Dibujar** — lienzo para dibujar a mano alzada y que el brazo reproduzca el trazo.
+6. **Escena** — posición de los objetos en la mesa.
+7. **Funciones** — referencia de la librería `robot`.
+8. **Robot** — ejecutar el mismo código en el brazo real y conexión por USB.
 
 Al ejecutar un programa (o si salta un error) la vista cambia sola a
 **Consola** para que se vea lo que pasa.
@@ -69,6 +70,13 @@ Además de ejecutar programas de Python, la página permite manejar el brazo a m
   conectado a la vez (se puede parar con Detener o la parada de emergencia), y
   **Copiar G-code** exporta la macro como comandos listos para la consola del
   programa Huenit. La macro se guarda sola en el navegador.
+- **Dibujar** (sección «Dibujar»): dibuja con el mouse o el dedo en el lienzo
+  y pulsa **Dibujar con el brazo**: el brazo reproduce cada trazo con la
+  herramienta Pluma (se elige sola), bajando la pluma al empezar cada trazo y
+  levantándola entre trazos. Con el robot conectado, dibuja de verdad.
+  **Copiar Python** y **Copiar G-code** exportan el dibujo como programa o
+  comandos listos para el programa Huenit. El lienzo se guarda solo en el
+  navegador.
 - **Pluma** (selector de herramienta «Portabolígrafos»): cuando la punta toca
   la mesa el brazo dibuja en ella, con cualquier movimiento (programa,
   «Mover», consola o macro). El ejemplo «Pluma: dibujar un cuadrado» traza un

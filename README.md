@@ -30,15 +30,16 @@ The page is divided into a sidebar, a main section and, on the right, the 3D
 scene with the manual movement panel, which stays visible in every section
 except «Funciones» (Functions) and «Robot». The sidebar holds the navigation,
 the tool selector, a light/dark theme toggle and the connection status. You
-jump between sections with Ctrl+1…7 (Cmd+1…7 on Mac), in this order:
+jump between sections with Ctrl+1…8 (Cmd+1…8 on Mac), in this order:
 
 1. **Programar** (Program) — Python editor with the examples and the Run / Stop / Reset buttons.
 2. **Consola** (Console) — what the program prints, with a Clear button.
 3. **Comandos al robot** (Commands to the robot) — interactive G-code console.
 4. **Teach & Play** — macro recorder.
-5. **Escena** (Scene) — position of the objects on the table.
-6. **Funciones** (Functions) — `robot` library reference.
-7. **Robot** — running the same code on the real arm and USB connection.
+5. **Dibujar** (Draw) — canvas for freehand drawing that the arm reproduces.
+6. **Escena** (Scene) — position of the objects on the table.
+7. **Funciones** (Functions) — `robot` library reference.
+8. **Robot** — running the same code on the real arm and USB connection.
 
 When you run a program (or an error occurs) the view switches automatically
 to **Consola** so you can see what happens.
@@ -70,6 +71,13 @@ Besides running Python programs, the page lets you drive the arm by hand:
   robot at the same time (it can be stopped with Detener or the emergency
   stop), and **Copiar G-code** exports the macro as commands ready for the
   Huenit program's console. The macro is saved automatically in the browser.
+- **Dibujar** (Draw, section «Dibujar»): draw with the mouse or a finger on
+  the canvas and press **Dibujar con el brazo** (Draw with the arm): the arm
+  reproduces each stroke with the pen tool (selected automatically), lowering
+  the pen at the start of each stroke and lifting it between strokes. With a
+  connected robot, it draws for real. **Copiar Python** and **Copiar G-code**
+  export the drawing as a program or as commands ready for the Huenit
+  program. The canvas is saved automatically in the browser.
 - **Pen** (tool selector «Portabolígrafos»): when the tip touches the table
   the arm draws on it, with any movement (program, «Mover», console or
   macro). The example «Pluma: dibujar un cuadrado» (Pen: draw a square)
