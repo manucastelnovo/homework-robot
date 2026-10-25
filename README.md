@@ -1,18 +1,21 @@
-# Simulador Huenit
+# Huenit Simulator
 
-Simulador 3D del brazo robótico Huenit para aprender Python. Los alumnos escriben
-código con la librería `robot` (la misma del programa Huenit), lo prueban en el
-simulador sin el robot y después lo ejecutan igual en el brazo real.
+3D simulator of the Huenit robotic arm for learning Python. Students write
+code with the `robot` library (the same one bundled with the Huenit program),
+test it in the simulator without the robot, and then run the exact same code
+on the real arm.
 
-## Contenido
+Spanish documentation: [LEEME.md](LEEME.md).
 
-| Archivo | Para qué sirve |
+## Contents
+
+| File | What it's for |
 |---|---|
-| `index.html` | El simulador completo. Ábrelo con doble clic en Chrome o Edge. |
-| `ejemplos/` | Los siete ejemplos del simulador como archivos `.py`. |
-| `referencia/robot.py` | La librería oficial que trae el programa Huenit (sacada de `resources/robot_blocks`). Solo como referencia: muestra qué comandos envía cada función. |
+| `index.html` | The complete simulator. Open it with a double click in Chrome or Edge. |
+| `ejemplos/` | The simulator's seven examples as `.py` files. |
+| `referencia/robot.py` | The official library bundled with the Huenit program (taken from `resources/robot_blocks`). Reference only: shows which commands each function sends. |
 
-## Usarlo
+## Using it
 
 1. Open `index.html` in Chrome or Edge. It needs internet the first time,
    because it loads the Python interpreter (Skulpt), the 3D engine (Three.js)
@@ -81,50 +84,50 @@ Besides running Python programs, the page lets you drive the arm by hand:
   Huenit program's laser mode. Its table Z (≈ −45) is approximate: measure
   your robot's.
 
-## Pasar al robot real
+## Moving to the real robot
 
-**Opción A (recomendada): programa Huenit**
+**Option A (recommended): Huenit program**
 
-1. Conecta el brazo a la PC con el cable USB-C (puerto de PC).
-2. En el programa Huenit ve a **Código** y crea un proyecto de **Python**.
-3. Pega el código, conecta el brazo y pulsa **Live**.
+1. Connect the arm to the PC with the USB-C cable (PC port).
+2. In the Huenit program go to **Código** (Code) and create a **Python** project.
+3. Paste the code, connect the arm and press **Live**.
 
-**Opción B: desde el navegador (Web Serial)**
+**Option B: from the browser (Web Serial)**
 
-El botón **Conectar robot** del simulador habla con el brazo por USB y ejecuta el
-mismo programa en el robot y en la simulación a la vez. Funciona en Chrome o Edge
-de escritorio cuando la página se abre desde un servidor `https://` o desde
-`localhost`. Algunos navegadores lo bloquean si abres el archivo con doble clic.
-Para probarlo en local:
+The **Conectar robot** (Connect robot) button (section «Robot») talks to the
+arm over USB and runs the same program on the robot and in the simulation at
+the same time. It works in desktop Chrome or Edge when the page is served
+from `https://` or from `localhost`. Some browsers block it if you open the
+file with a double click. To try it locally:
 
 ```
 cd simulador-huenit
 python -m http.server 8000
 ```
 
-Luego abre http://localhost:8000 en Chrome. Cierra antes el programa Huenit,
-porque solo una aplicación puede usar el puerto USB a la vez.
+Then open http://localhost:8000 in Chrome. Close the Huenit program first,
+because only one application can use the USB port at a time.
 
-Para que los alumnos tengan un enlace fijo y gratuito, sube la carpeta a un
-repositorio de GitHub y activa **GitHub Pages**.
+To give students a fixed, free link, upload the folder to a GitHub repository
+and enable **GitHub Pages**.
 
-## Coordenadas
+## Coordinates
 
-- Origen en el centro de la base. Mirando el brazo desde atrás: X hacia los
-  lados, Y hacia adelante y Z hacia arriba. Todo en milímetros.
-- Posición de casa: (0, 180, 0).
-- Mesa: Z ≈ −60 con la ventosa y Z ≈ −20 con la pinza (valores de los ejemplos
-  oficiales de Huenit). Mide la de tu robot y ajusta si hace falta.
-- El alcance usa la misma fórmula que `checkXYZ()` de la librería oficial.
+- Origin at the center of the base. Looking at the arm from behind: X to the
+  sides, Y forward and Z up. Everything in millimeters.
+- Home position: (0, 180, 0).
+- Table: Z ≈ −60 with the suction cup and Z ≈ −20 with the gripper (values
+  from Huenit's official examples). Measure your robot's and adjust if needed.
+- Reachability uses the same formula as `checkXYZ()` from the official library.
 
-## Limitaciones conocidas
+## Known limitations
 
-- El dibujo del brazo es aproximado: Huenit no publica las medidas de los
-  eslabones. Las coordenadas y el alcance sí son los oficiales.
-- `moveAngle()`, `move_conveyor()` y los comandos G-code que no sean G0 o G1 se
-  envían al robot real, pero la simulación no los dibuja.
-- `getDeg()` es aproximado en la simulación.
-- El simulador usa Skulpt, que cubre casi todo el Python que se enseña en clase
-  (variables, bucles, funciones, listas, f-strings), pero no todas las librerías.
-- No se ha probado todavía con el robot físico. Haz los primeros movimientos
-  lentos y lejos de objetos.
+- The arm's drawing is approximate: Huenit doesn't publish the link
+  measurements. Coordinates and reachability are the official ones.
+- `moveAngle()`, `move_conveyor()` and G-code commands other than G0 or G1 are
+  sent to the real robot, but the simulation doesn't animate them.
+- `getDeg()` is approximate in the simulation.
+- The simulator uses Skulpt, which covers almost all the Python taught in
+  class (variables, loops, functions, lists, f-strings), but not all libraries.
+- It hasn't been tested with the physical robot yet. Make the first movements
+  slow and away from objects.

@@ -9,17 +9,78 @@ simulador sin el robot y después lo ejecutan igual en el brazo real.
 | Archivo | Para qué sirve |
 |---|---|
 | `index.html` | El simulador completo. Ábrelo con doble clic en Chrome o Edge. |
-| `ejemplos/` | Los cinco ejemplos del simulador como archivos `.py`. |
+| `ejemplos/` | Los siete ejemplos del simulador como archivos `.py`. |
 | `referencia/robot.py` | La librería oficial que trae el programa Huenit (sacada de `resources/robot_blocks`). Solo como referencia: muestra qué comandos envía cada función. |
+| `README.md` | Esta documentación en inglés. |
 
 ## Usarlo
 
 1. Abre `index.html` en Chrome o Edge. Necesita internet la primera vez, porque
    carga el intérprete de Python (Skulpt), el motor 3D (Three.js) y el editor
    (CodeMirror) desde CDN.
-2. Escribe el código, elige la herramienta (ventosa o pinza) y pulsa **Ejecutar**
-   (o Ctrl+Enter).
+2. Escribe el código y pulsa **Ejecutar** (o Ctrl+Enter). La herramienta
+   (ventosa, pinza, pluma o láser) se elige en la barra lateral.
 3. El código se guarda solo en el navegador de cada alumno.
+
+## La interfaz
+
+La página se divide en una barra lateral, una sección principal y, a la
+derecha, la escena 3D con el panel de movimiento manual, que se ve en todas
+las secciones excepto «Funciones» y «Robot». La barra lateral lleva la
+navegación, el selector de herramienta, un botón de tema claro/oscuro y el
+estado de la conexión. Se salta de sección con Ctrl+1…7 (Cmd+1…7 en Mac), en
+este orden:
+
+1. **Programar** — editor Python con los ejemplos y los botones Ejecutar / Detener / Reiniciar.
+2. **Consola** — lo que imprime el programa, con botón Limpiar.
+3. **Comandos al robot** — consola G-code interactiva.
+4. **Teach & Play** — grabador de macros.
+5. **Escena** — posición de los objetos en la mesa.
+6. **Funciones** — referencia de la librería `robot`.
+7. **Robot** — ejecutar el mismo código en el brazo real y conexión por USB.
+
+Al ejecutar un programa (o si salta un error) la vista cambia sola a
+**Consola** para que se vea lo que pasa.
+
+## Controles manuales del brazo
+
+Además de ejecutar programas de Python, la página permite manejar el brazo a mano:
+
+- **Parada de emergencia** (botón rojo, arriba a la derecha): aborta el
+  movimiento del brazo (comando `M410`, el mismo que usa el programa Huenit)
+  y detiene el programa en marcha.
+- **Mover** (panel derecho, visible en todas las secciones salvo «Funciones» y
+  «Robot»): cruceta para X/Y, botones Z+/Z− y
+  botón de casa. También con el teclado: las flechas mueven en X/Y,
+  Re Pág/Av Pág en Z e Inicio vuelve a casa. El selector **Paso** fija los
+  milímetros de cada movimiento (1, 5, 10 o 25 mm) y el deslizador
+  **Velocidad** lo hace más lento (en el robot conectado se intenta enviar
+  como `M220`, si el firmware lo acepta).
+- **Consola G-code** (sección «Comandos al robot»): escribe un comando y pulsa
+  Enter para probarlo en la simulación y, si está conectado, en el brazo.
+  Entiende `help` (lista de comandos) y `clear` (limpiar), y guarda el
+  historial con las flechas ↑ ↓.
+- **Teach & Play** (sección «Teach & Play»): enseña al brazo una secuencia
+  paso a paso. Mueve el brazo con el panel «Mover» de la derecha (o con un programa), pulsa
+  **Añadir paso** para guardar la posición y ajusta en cada paso el modo de
+  movimiento (arco/lineal/sin mover), la acción de la herramienta (ventosa o
+  pinza) y una pausa T en segundos — el mismo modelo de macro del programa
+  Huenit. **Reproducir** ejecuta la macro en la simulación y en el robot
+  conectado a la vez (se puede parar con Detener o la parada de emergencia), y
+  **Copiar G-code** exporta la macro como comandos listos para la consola del
+  programa Huenit. La macro se guarda sola en el navegador.
+- **Pluma** (selector de herramienta «Portabolígrafos»): cuando la punta toca
+  la mesa el brazo dibuja en ella, con cualquier movimiento (programa,
+  «Mover», consola o macro). El ejemplo «Pluma: dibujar un cuadrado» traza un
+  cuadrado de 100 mm con `moveG1`. Su Z de mesa (≈ −50) es aproximada: mide
+  la de tu robot, porque en el programa Huenit la profundidad de dibujo es
+  configurable. **Reiniciar escena** borra también el dibujo.
+- **Láser** (selector «Láser (grabado)»): `robot.laserOn()` / `robot.laserOff()`
+  encienden y apagan el haz (comandos `M3` / `M5`); al pasar por la altura
+  focal deja la marca de grabado en la mesa. El ejemplo «Láser: grabar un
+  cuadrado» lo muestra. **El láser real quema: solo con el robot conectado y
+  supervisado**, con el mismo cuidado que el modo láser del programa Huenit.
+  Su Z de mesa (≈ −45) es aproximada: mide la de tu robot.
 
 ## Pasar al robot real
 
@@ -31,7 +92,7 @@ simulador sin el robot y después lo ejecutan igual en el brazo real.
 
 **Opción B: desde el navegador (Web Serial)**
 
-El botón **Conectar robot** del simulador habla con el brazo por USB y ejecuta el
+El botón **Conectar robot** (sección «Robot») del simulador habla con el brazo por USB y ejecuta el
 mismo programa en el robot y en la simulación a la vez. Funciona en Chrome o Edge
 de escritorio cuando la página se abre desde un servidor `https://` o desde
 `localhost`. Algunos navegadores lo bloquean si abres el archivo con doble clic.
