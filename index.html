@@ -160,6 +160,43 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
 .status-line.err { color: var(--err); }
 .status-line.ok { color: var(--ok); }
 
+.head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn.estop { background: var(--err); border-color: var(--err); color: #fff; font-weight: 700; letter-spacing: 0.03em; }
+.btn.estop:hover:not(:disabled) { filter: brightness(1.1); }
+.btn.estop:active:not(:disabled) { transform: scale(0.97); }
+.btn.estop.hit { box-shadow: 0 0 0 4px color-mix(in srgb, var(--err) 35%, transparent); }
+
+.jogbar { gap: 16px; }
+.jogpad { display: grid; grid-template-columns: repeat(3, 32px); grid-template-rows: repeat(3, 32px); gap: 3px; }
+.jog { padding: 0; justify-content: center; font-size: 0.78rem; user-select: none; }
+.jog-home { color: var(--accent); font-weight: 700; }
+.jogz { display: grid; grid-template-rows: repeat(2, 32px); gap: 3px; }
+.jogz .jog { font-family: var(--font-mono); }
+.jogopts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.jogopts input[type="range"] { width: 110px; }
+.jogval { font-family: var(--font-mono); font-size: 0.76rem; color: var(--muted); min-width: 3.2em; }
+.joghint { font-size: 0.72rem; color: var(--muted); }
+
+#pane-gcode { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+#gcodeLog { flex: 1; overflow: auto; padding: 8px 12px; }
+.gcode-form { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--line); padding: 6px 12px; }
+.gcode-form .prompt { font-family: var(--font-mono); color: var(--accent); font-weight: 600; }
+.gcode-form input { flex: 1; min-width: 0; background: var(--sunk); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font-family: var(--font-mono); font-size: 0.82rem; }
+.log .cmd { color: var(--accent); font-weight: 600; }
+
+#pane-teach { display: flex; flex-direction: column; padding: 0; overflow: hidden; height: 300px; }
+.teachbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.teachbar .btn svg { width: 13px; height: 13px; }
+.teachhint { margin: 0; padding: 6px 12px; font-size: 0.78rem; color: var(--muted); border-bottom: 1px solid var(--line); }
+.teachlist { flex: 1; overflow: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
+.mstep { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; background: var(--sunk); font-size: 0.8rem; }
+.mstep.playing { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.mnum { font-family: var(--font-mono); color: var(--muted); min-width: 1.6em; }
+.mpos { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mstep select { padding: 3px 6px; font-size: 0.78rem; }
+.mstep input[type="number"] { width: 4.2em; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font-family: var(--font-mono); font-size: 0.78rem; }
+.mstep .btn { padding: 3px 8px; font-size: 0.75rem; }
+
 @media (max-width: 980px) {
   .bench { grid-template-columns: minmax(0, 1fr); }
   .CodeMirror { height: 360px; }
@@ -173,6 +210,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
   .readout { font-size: 0.72rem; padding: 4px 7px; }
   .tag { font-size: 0.64rem; padding: 2px 6px; }
   #tagReach { display: none; }
+  .joghint { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
@@ -183,7 +221,10 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
       <h1>Simulador Huenit</h1>
       <p>Escribe Python para el brazo robótico y míralo moverse en 3D, sin conectar el robot.</p>
     </div>
-    <span class="chip" id="modeChip"><span class="dot"></span><span id="modeText">Simulación</span></span>
+    <div class="head-actions">
+      <button class="btn estop" id="estopBtn" type="button" title="Aborta el movimiento del brazo (M410) y detiene el programa en marcha"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M10.7 1.5H5.3L1.5 5.3v5.4l3.8 3.8h5.4l3.8-3.8V5.3z"/><rect x="7" y="4" width="2" height="5.4" rx="1" fill="#fff"/><rect x="7" y="10.6" width="2" height="2" rx="1" fill="#fff"/></svg>Parada de emergencia</button>
+      <span class="chip" id="modeChip"><span class="dot"></span><span id="modeText">Simulación</span></span>
+    </div>
   </header>
 
   <div class="bench">
@@ -199,6 +240,8 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
           <select id="toolSel">
             <option value="suction">Ventosa (succión)</option>
             <option value="gripper">Pinza blanda</option>
+            <option value="pen">Portabolígrafos (dibujo)</option>
+            <option value="laser">Láser (grabado)</option>
           </select>
         </div>
         <p class="notice" id="exampleNotice" hidden><span id="exampleNoticeText"></span><button class="linkbtn" id="restoreBtn" type="button">Recuperar mi código</button></p>
@@ -237,17 +280,63 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
           </div>
           <div class="stage-help">Arrastra para girar · rueda para acercar</div>
         </div>
+        <div class="bar sep jogbar">
+          <span class="lbl" id="jogLabel">Mover</span>
+          <div class="jogpad" role="group" aria-labelledby="jogLabel">
+            <span></span><button class="btn jog" data-jog="0,1" type="button" title="Y+ (flecha arriba)" aria-label="Mover en Y positiva">▲</button><span></span>
+            <button class="btn jog" data-jog="-1,0" type="button" title="X− (flecha izquierda)" aria-label="Mover en X negativa">◀</button>
+            <button class="btn jog jog-home" data-jog="home" type="button" title="Ir a casa (tecla Inicio)" aria-label="Ir a la posición de casa">⌂</button>
+            <button class="btn jog" data-jog="1,0" type="button" title="X+ (flecha derecha)" aria-label="Mover en X positiva">▶</button>
+            <span></span><button class="btn jog" data-jog="0,-1" type="button" title="Y− (flecha abajo)" aria-label="Mover en Y negativa">▼</button><span></span>
+          </div>
+          <div class="jogz" role="group" aria-label="Mover en Z">
+            <button class="btn jog" data-jog="0,0,1" type="button" title="Subir Z (Av Pág)" aria-label="Subir en Z">Z+</button>
+            <button class="btn jog" data-jog="0,0,-1" type="button" title="Bajar Z (Re Pág)" aria-label="Bajar en Z">Z−</button>
+          </div>
+          <div class="jogopts">
+            <label class="lbl" for="jogStep">Paso</label>
+            <select id="jogStep">
+              <option value="1">1 mm</option>
+              <option value="5" selected>5 mm</option>
+              <option value="10">10 mm</option>
+              <option value="25">25 mm</option>
+            </select>
+            <label class="lbl" for="jogSpeed">Velocidad</label>
+            <input type="range" id="jogSpeed" min="10" max="100" step="5" value="100">
+            <span class="jogval" id="jogSpeedVal">100%</span>
+          </div>
+          <span class="joghint">Flechas = X/Y · Re Pág/Av Pág = Z · Inicio = casa</span>
+        </div>
         <div class="tabs" role="tablist">
           <button class="tab" role="tab" aria-selected="true" data-tab="console" id="tab-console">Consola</button>
           <button class="tab" role="tab" aria-selected="false" data-tab="gcode" id="tab-gcode">Comandos al robot<span class="count" id="gcodeCount">0</span></button>
           <button class="tab" role="tab" aria-selected="false" data-tab="scene" id="tab-scene">Escena</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="teach" id="tab-teach">Teach &amp; Play<span class="count" id="teachCount">0</span></button>
           <button class="tab" role="tab" aria-selected="false" data-tab="ref" id="tab-ref">Funciones</button>
         </div>
         <div class="pane" id="pane-console" role="tabpanel"><pre class="log" id="log"><span class="info">Pulsa Ejecutar para correr el programa. Lo que imprimas con print() aparece aquí.</span></pre></div>
-        <div class="pane" id="pane-gcode" role="tabpanel" hidden><pre class="log" id="gcodeLog"><span class="info">Aquí verás, línea por línea, los comandos G-code que la librería robot.py enviaría por USB al brazo real.</span></pre></div>
+        <div class="pane" id="pane-gcode" role="tabpanel" hidden>
+          <pre class="log" id="gcodeLog"><span class="info">Aquí verás, línea por línea, los comandos G-code que la librería robot.py enviaría por USB al brazo real.</span>
+<span class="info">Escribe un comando y pulsa Enter para probarlo en la simulación y, si está conectado, en el robot. Escribe «help» para ver la lista.</span></pre>
+          <form class="gcode-form" id="gcodeForm">
+            <span class="prompt" aria-hidden="true">&gt;</span>
+            <input id="gcodeInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder='Comando G-code, p. ej. G0 X0 Y200 Z50 · «help» muestra la lista' aria-label="Comando G-code para el robot">
+          </form>
+        </div>
         <div class="pane" id="pane-scene" role="tabpanel" hidden>
           <p>Posición de cada objeto en coordenadas del robot (mm). La columna "tocar arriba" es la Z que debe tener la herramienta actual para tocar la cara superior del cubo.</p>
           <div class="scene-list" id="sceneList"></div>
+        </div>
+        <div class="pane" id="pane-teach" role="tabpanel" hidden>
+          <div class="teachbar">
+            <button class="btn primary" id="teachAdd" type="button">+ Añadir paso</button>
+            <button class="btn" id="teachPlay" type="button"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>Reproducir</button>
+            <button class="btn stop" id="teachClear" type="button">Vaciar</button>
+            <button class="btn" id="teachCopy" type="button">Copiar G-code</button>
+            <span class="status-line" id="teachStatus"></span>
+          </div>
+          <p class="teachhint">Enseña al brazo una secuencia: muévelo con el panel <b>Mover</b> (o con un programa) y pulsa <b>Añadir paso</b> para guardar cada posición. Ajusta en cada paso el modo de movimiento, la acción de la herramienta y la pausa T en segundos.</p>
+          <div class="teachlist" id="teachList"></div>
         </div>
         <div class="pane" id="pane-ref" role="tabpanel" hidden>
           <p>Son las mismas funciones de la librería <code>robot</code> que trae el programa Huenit, así que el código funciona igual en el robot real. Empieza siempre con <code>import robot</code>.</p>
@@ -264,6 +353,8 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
             <tr><td>robot.suctionOff()</td><td>Apaga la ventosa y suelta el objeto.</td></tr>
             <tr><td>robot.gripper(modo)</td><td>Pinza: 0 = reposo, 1 = abrir, 2 = agarrar (tarda unos 3 s).</td></tr>
             <tr><td>robot.suctionAngle(grados, velocidad)</td><td>Gira la ventosa (módulo giratorio). De 0 a 269 grados.</td></tr>
+            <tr><td>Portabolígrafos</td><td>Elige la herramienta «Pluma»: cuando la punta toca la mesa, el brazo dibuja. Con <code>moveG1</code> traza líneas rectas; al subir la Z levanta la pluma.</td></tr>
+            <tr><td>robot.laserOn() / robot.laserOff()</td><td>Enciende o apaga el láser (herramienta «Láser»). Al pasar por la altura focal deja la marca de grabado. En el robot real quema de verdad: mismo cuidado que el modo láser del programa Huenit. En la consola G-code equivale a <code>M3</code> / <code>M5</code>.</td></tr>
             <tr class="group"><td colspan="2">Otras</td></tr>
             <tr><td>time.sleep(segundos)</td><td>Espera. Necesita <code>import time</code>.</td></tr>
             <tr><td>robot.getDeg()</td><td>Ángulos de los motores. En la simulación es aproximado.</td></tr>
@@ -272,7 +363,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
             <tr><td>robot.sendCommand("G0 X0 Y200 Z50\n")</td><td>Envía un comando G-code a mano. La simulación entiende G0 y G1.</td></tr>
             <tr class="group"><td colspan="2">Coordenadas</td></tr>
             <tr><td>Origen</td><td>Centro de la base. Mirando el brazo desde atrás: X hacia los lados, Y hacia adelante, Z hacia arriba. Todo en milímetros.</td></tr>
-            <tr><td>Mesa</td><td>Con ventosa la mesa queda en Z ≈ −60 y con pinza en Z ≈ −20, según los ejemplos oficiales. Mide la de tu robot antes de la clase.</td></tr>
+            <tr><td>Mesa</td><td>Mesa aproximada: Z ≈ −60 con ventosa, Z ≈ −20 con pinza y Z ≈ −50 con pluma (este último no es oficial: mide la de tu robot antes de la clase).</td></tr>
           </table>
           </div>
         </div>
@@ -341,7 +432,9 @@ const G = { flange: 110, shoulder: 135, L1: 160, L2: 160, reachA: 60, wristUp: 2
 // Altura de la punta de cada herramienta sobre la mesa: punta = Z + T
 const TOOL = {
   suction: { name: "Ventosa", T: 60 },
-  gripper: { name: "Pinza", T: 20 }
+  gripper: { name: "Pinza", T: 20 },
+  pen: { name: "Pluma", T: 50 }, // T aproximado: en el programa Huenit la profundidad de dibujo es configurable
+  laser: { name: "Láser", T: 45 } // T aproximado: distancia focal del módulo láser
 };
 const HOME = { x: 0, y: 180, z: 0 };
 const CUBE = 25;
@@ -358,7 +451,7 @@ const PADS = [
 ];
 const S = {
   pos: { ...HOME }, theta: 0, tool: "suction", pump: 0, valve: 0, grip: 0, held: null, holdOff: null,
-  free: false, rot: 0, cubes: [], running: false, speed: 1, gcodeN: 0
+  free: false, rot: 0, cubes: [], running: false, speed: 1, gcodeN: 0, jogStep: 5, jogSpeed: 100, laser: false
 };
 
 /* ===================== Escena 3D ===================== */
@@ -487,6 +580,27 @@ function buildRobot() {
     parts.fingers.push({ pivot, s });
   });
   parts.gripper = gripper;
+  const pen = new THREE.Group(); toolG.add(pen);
+  const pLen = G.flange - TOOL.pen.T;
+  const pholder = shadow(new THREE.Mesh(new THREE.CylinderGeometry(11, 13, 26, 24), grey)); pholder.position.y = -13; pen.add(pholder);
+  const pcollar = shadow(new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 8, 20), dark)); pcollar.position.y = -30; pen.add(pcollar);
+  const pBodyLen = pLen - 34;
+  const pbody = shadow(new THREE.Mesh(new THREE.CylinderGeometry(5.5, 5.5, pBodyLen, 16), new THREE.MeshStandardMaterial({ color: 0x1971c2, roughness: 0.5 })));
+  pbody.position.y = -34 - pBodyLen / 2; pen.add(pbody);
+  const nib = new THREE.Mesh(new THREE.ConeGeometry(4.5, 8, 16), new THREE.MeshStandardMaterial({ color: 0xe9e4d0, roughness: 0.7 }));
+  nib.rotation.x = Math.PI; nib.position.y = -pLen + 4; pen.add(nib);
+  parts.pen = pen;
+  const laser = new THREE.Group(); toolG.add(laser);
+  const lLen = G.flange - TOOL.laser.T;
+  const lbody = shadow(new THREE.Mesh(new THREE.CylinderGeometry(14, 16, 30, 24), dark)); lbody.position.y = -15; laser.add(lbody);
+  const lband = shadow(new THREE.Mesh(new THREE.CylinderGeometry(16, 16, 8, 24), grey)); lband.position.y = -32; laser.add(lband);
+  const llens = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 3, 20), new THREE.MeshStandardMaterial({ color: 0xd6336c, roughness: 0.3 }));
+  llens.position.y = -lLen + 2; laser.add(llens);
+  const beam = new THREE.Mesh(new THREE.ConeGeometry(4, 1, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xff2222, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }));
+  laser.add(beam); parts.beam = beam;
+  const lspot = new THREE.Mesh(new THREE.CircleGeometry(5, 20), new THREE.MeshBasicMaterial({ color: 0xff5533, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }));
+  lspot.rotation.x = -Math.PI / 2; laser.add(lspot); parts.lspot = lspot;
+  parts.laser = laser;
   parts.turret = turret;
 }
 
@@ -521,6 +635,19 @@ function pose() {
   parts.toolG.rotation.y = (S.rot * Math.PI) / 180;
   parts.suction.visible = S.tool === "suction";
   parts.gripper.visible = S.tool === "gripper";
+  if (parts.pen) parts.pen.visible = S.tool === "pen";
+  if (parts.laser) {
+    parts.laser.visible = S.tool === "laser";
+    const show = S.tool === "laser" && S.laser;
+    parts.beam.visible = show;
+    parts.lspot.visible = show;
+    if (show) {
+      const h = Math.max(tip().h, 0.5); // longitud del haz: de la cabeza a la mesa
+      parts.beam.scale.y = h;
+      parts.beam.position.y = -(G.flange - TOOL.laser.T) - h / 2;
+      parts.lspot.position.y = -k.h;
+    }
+  }
   const open = S.grip === 1 ? 0.32 : S.grip === 2 ? -0.05 : 0.1;
   parts.fingers.forEach((f) => { f.pivot.rotation.x = -f.s * open; });
   // cubo sujeto
@@ -585,6 +712,46 @@ function pushTrail() {
   trail.geometry = new THREE.BufferGeometry().setFromPoints(trailPts);
 }
 
+/* ===================== Trazos: tinta de la pluma y grabado del láser ===================== */
+let strokesGroup = null, curStroke = null, wasTouching = false;
+const INK = 0x1971c2;
+const BURN = 0xd9480f;
+function penTouching() { return S.tool === "pen" && tip().h <= 0.6; }
+function addStrokeMesh(pts) {
+  if (!window.THREE || !scene) return;
+  if (!strokesGroup) { strokesGroup = new THREE.Group(); scene.add(strokesGroup); }
+  const color = S.tool === "laser" ? BURN : INK;
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color }));
+  line.userData.pts = pts;
+  strokesGroup.add(line);
+}
+function updateStrokeMesh(pts) {
+  if (!strokesGroup) return;
+  const line = strokesGroup.children.find((l) => l.userData.pts === pts);
+  if (line) { line.geometry.dispose(); line.geometry = new THREE.BufferGeometry().setFromPoints(pts); }
+}
+function penTrack() {
+  const isPen = S.tool === "pen", isLaser = S.tool === "laser";
+  if (!isPen && !isLaser) {
+    curStroke = null;
+    if (wasTouching) { wasTouching = false; updateTags(); }
+    return;
+  }
+  // El láser solo marca cuando está encendido; la pluma, al apoyarse
+  const touching = tip().h <= 0.6 && (isPen || S.laser);
+  if (touching !== wasTouching) { wasTouching = touching; updateTags(); }
+  if (!touching) { curStroke = null; return; }
+  const p = w2t(S.pos.x, S.pos.y, 0.6); // 0.6 mm sobre la mesa, para que no parpadee
+  if (!curStroke) { curStroke = [p]; addStrokeMesh(curStroke); return; }
+  if (curStroke[curStroke.length - 1].distanceTo(p) > 0.8) { curStroke.push(p); updateStrokeMesh(curStroke); }
+}
+function clearStrokes() {
+  curStroke = null; wasTouching = false;
+  if (!strokesGroup) return;
+  strokesGroup.children.forEach((l) => l.geometry.dispose());
+  scene.remove(strokesGroup); strokesGroup = null;
+}
+
 /* ===================== Cubos y física simple ===================== */
 function resetScene() {
   S.cubes.forEach((c) => scene && scene.remove(c.mesh));
@@ -593,8 +760,9 @@ function resetScene() {
     c.mesh = new THREE.Mesh(new THREE.BoxGeometry(CUBE, CUBE, CUBE), new THREE.MeshStandardMaterial({ color: c.color, roughness: 0.6 }));
     c.mesh.castShadow = c.mesh.receiveShadow = true; scene.add(c.mesh);
   });
-  S.pos = { ...HOME }; S.theta = 0; S.pump = 0; S.valve = 0; S.grip = 0; S.held = null; S.free = false; S.rot = 0;
+  S.pos = { ...HOME }; S.theta = 0; S.pump = 0; S.valve = 0; S.grip = 0; S.held = null; S.free = false; S.rot = 0; S.laser = false;
   trailPts = []; if (trail) { trail.geometry.dispose(); trail.geometry = new THREE.BufferGeometry(); }
+  clearStrokes();
   pose(); drawReach(); updateTags(); renderScene();
 }
 function suctionActive() { return S.tool === "suction" && S.pump > 0 && !S.valve; }
@@ -605,7 +773,7 @@ function tryAttach() {
     const top = c.h + CUBE, dx = Math.abs(t.x - c.x), dy = Math.abs(t.y - c.y);
     let ok = false;
     if (S.tool === "suction") ok = dx <= 10 && dy <= 10 && Math.abs(t.h - top) <= 4;
-    else ok = dx <= 9 && dy <= 9 && t.h >= c.h + 3 && t.h <= top - 1;
+    else if (S.tool === "gripper") ok = dx <= 9 && dy <= 9 && t.h >= c.h + 3 && t.h <= top - 1;
     if (ok && !isCovered(c)) { S.held = c; S.holdOff = { x: c.x - t.x, y: c.y - t.y, h: c.h - t.h }; info("  ↳ " + c.label + " agarrado"); updateTags(); return; }
   }
 }
@@ -630,11 +798,22 @@ function release() {
 }
 function collision() {
   const t = tip();
-  if (t.h < -0.5) return "La herramienta choca con la mesa (Z = " + S.pos.z.toFixed(1) + "). Con " + TOOL[S.tool].name.toLowerCase() + " la mesa está en Z = " + (-TOOL[S.tool].T) + ".";
+  if (t.h < -0.5) {
+    // Con pluma o láser, apoyarlo un poco es dibujar/grabar; hundirlo de más es error
+    const marking = S.tool === "pen" || S.tool === "laser";
+    if (!marking || t.h < -2)
+      return marking
+        ? "Has hundido " + (S.tool === "pen" ? "la pluma" : "el láser") + " en la mesa (Z = " + S.pos.z.toFixed(1) + "). Con " + TOOL[S.tool].name.toLowerCase() + " la mesa está en Z = " + (-TOOL[S.tool].T) + "."
+        : "La herramienta choca con la mesa (Z = " + S.pos.z.toFixed(1) + "). Con " + TOOL[S.tool].name.toLowerCase() + " la mesa está en Z = " + (-TOOL[S.tool].T) + ".";
+  }
   for (const c of S.cubes) {
     if (c === S.held) continue;
     const inside = Math.abs(t.x - c.x) < CUBE / 2 && Math.abs(t.y - c.y) < CUBE / 2 && t.h < c.h + CUBE - 1.5 && t.h > c.h - 40;
-    if (inside && (S.tool === "suction" || S.grip !== 1)) return "La " + TOOL[S.tool].name.toLowerCase() + " choca con el " + c.label.toLowerCase() + ". Para tocarlo por arriba usa Z = " + (c.h + CUBE - TOOL[S.tool].T) + (S.tool === "gripper" ? " o abre la pinza con robot.gripper(1)." : ".");
+    if (inside && (S.tool === "suction" || S.grip !== 1)) {
+      if (S.tool === "pen") return "La pluma choca con el " + c.label.toLowerCase() + ". Dibuja en la mesa o sube la Z por encima de " + (c.h + CUBE - TOOL[S.tool].T) + " para pasar por encima.";
+      if (S.tool === "laser") return "El láser apunta al " + c.label.toLowerCase() + ". Graba en la mesa o sube la Z por encima de " + (c.h + CUBE - TOOL[S.tool].T) + " para pasar por encima.";
+      return "La " + TOOL[S.tool].name.toLowerCase() + " choca con el " + c.label.toLowerCase() + ". Para tocarlo por arriba usa Z = " + (c.h + CUBE - TOOL[S.tool].T) + (S.tool === "gripper" ? " o abre la pinza con robot.gripper(1)." : ".");
+    }
   }
   if (S.held) {
     const c = S.held;
@@ -654,7 +833,7 @@ function pathPoint(a, b, k, mode) {
   return { x: r * Math.sin(t), y: r * Math.cos(t), z: a.z + (b.z - a.z) * k };
 }
 function fmt(v) { return Number.isInteger(v) ? String(v) : String(+v.toFixed(3)); }
-function moveTo(target, mode) {
+function moveTo(target, mode, mul) {
   const a = { ...S.pos }, b = target;
   if (!checkXYZ(b.x, b.y, b.z)) {
     showGhost(b);
@@ -666,7 +845,7 @@ function moveTo(target, mode) {
     if (!checkXYZ(p.x, p.y, p.z)) { showGhost(p); throw new Error("No reachable: el camino hasta (" + fmt(b.x) + ", " + fmt(b.y) + ", " + fmt(b.z) + ") pasa por (" + p.x.toFixed(0) + ", " + p.y.toFixed(0) + ", " + p.z.toFixed(0) + "), fuera del alcance del brazo. Agrega un punto intermedio" + (mode === "linear" ? " o usa moveG0 (arco)." : ".")); }
     len += Math.hypot(p.x - prev.x, p.y - prev.y, p.z - prev.z); prev = p;
   }
-  const dur = Math.max(220, (len / (150 * S.speed)) * 1000);
+  const dur = Math.max(220, (len / (150 * S.speed * (mul || 1))) * 1000);
   if (!renderer) { S.pos = { ...b }; pose(); return wait(dur); }
   return new Promise((res, rej) => {
     let t0 = null;
@@ -681,7 +860,8 @@ function moveTo(target, mode) {
         pushTrail();
         const hit = collision();
         if (hit) { anim = null; drawReach(); renderScene(); rej(new Error(hit)); return; }
-        if (k >= 1) { S.pos = { ...b }; pose(); anim = null; drawReach(); renderScene(); res(); }
+        penTrack();
+        if (k >= 1) { S.pos = { ...b }; pose(); penTrack(); anim = null; drawReach(); renderScene(); res(); }
       },
       cancel() { anim = null; rej(STOP); }
     };
@@ -741,12 +921,12 @@ const Serial = {
     });
   },
   // Igual que sendCommand() de robot.py: envía y lee hasta "ok"
-  async send(cmd) {
+  async send(cmd, ignoreStop) {
     this.lines = [];
     await this.writer.write(new TextEncoder().encode(cmd + "\n"));
     let info = "";
     for (;;) {
-      if (stopFlag) throw STOP;
+      if (stopFlag && !ignoreStop) throw STOP;
       const line = await this.nextLine(60000);
       if (line === null) throw new Error("El robot no respondió a " + cmd + ". Revisa el cable y que el robot esté encendido.");
       if (line.indexOf("ok") > -1) return info;
@@ -814,7 +994,7 @@ const API = {
   goHome: async (a, l) => { const sim = moveTo({ ...HOME }, "arc"); await Promise.all([sim, sendSeq(["M1008 A5"], l)]); },
   moveZ0: async (a, l) => { const z = num("moveZ0", a[0], "z"); const sim = moveTo({ x: S.pos.x, y: S.pos.y, z }, "linear"); await Promise.all([sim, sendSeq(["G0 Z" + fmt(z)], l)]); },
   moveZ0_M400: async (a, l) => { const z = num("moveZ0_M400", a[0], "z"); const sim = moveTo({ x: S.pos.x, y: S.pos.y, z }, "linear"); await Promise.all([sim, sendSeq(["G0 Z" + fmt(z), "M400"], l)]); },
-  suctionOn: (a, l) => { if (S.tool !== "suction") warnTool("suctionOn", "ventosa"); return airSeq([...VALVE_OFF, ...PUMP_ON], l); },
+  suctionOn: (a, l) => { if (S.tool !== "suction") warnTool("suctionOn", "la ventosa"); return airSeq([...VALVE_OFF, ...PUMP_ON], l); },
   suctionOff: (a, l) => airSeq([...PUMP_OFF, ...VALVE_ON, 0.3, ...VALVE_OFF], l),
   pumpOn: (a, l) => airSeq(PUMP_ON, l),
   pumpOff: (a, l) => airSeq(PUMP_OFF, l),
@@ -824,7 +1004,7 @@ const API = {
   gripper: async (a, l) => {
     const st = a[0];
     if (st !== 0 && st !== 1 && st !== 2) throw new ValueError("gripper solo acepta 0 (reposo), 1 (abrir) o 2 (agarrar)");
-    if (S.tool !== "gripper") warnTool("gripper", "pinza");
+    if (S.tool !== "gripper") warnTool("gripper", "la pinza");
     if (st === 0) { await airSeq([...PUMP_OFF, ...VALVE_ON, 0.3, ...PUMP_OFF, ...VALVE_OFF], l); S.grip = 0; pose(); await release(); }
     else if (st === 1) { await airSeq([...VALVE_OFF, "M1400 A1000"], l); S.grip = 1; pose(); await release(); }
     else { await airSeq([...VALVE_ON, "M1400 A1000"], l); S.grip = 2; pose(); if (S.tool === "gripper") tryAttach(); await airSeq([3, "M1400 A300"], l); }
@@ -855,6 +1035,13 @@ const API = {
   },
   moveAngle: async (a, l) => { await sendSeq(["M1005 A" + a[0] + " B" + a[1] + " C" + a[2], "M400"], l); warn("  ↳ moveAngle mueve los motores por ángulo. La simulación no lo dibuja; úsalo solo con el robot real."); },
   move_conveyor: async (a, l) => { const d = a.length ? num("move_conveyor", a[0], "la distancia") : 43; await sendSeq(["M204 R5", "M203 E30", "G91", "G1 E" + fmt(d), "G90"], l); info("  ↳ Cinta transportadora: avanza " + fmt(d) + " mm (no se dibuja)."); },
+  laserOn: async (a, l) => {
+    if (S.tool !== "laser") warnTool("laserOn", "el láser");
+    await sendSeq(["M3"], l);
+    S.laser = true; pose(); updateTags();
+    info("  ↳ Láser encendido (M3). En el robot real quema de verdad: mismo cuidado que en el modo láser del programa Huenit.");
+  },
+  laserOff: async (a, l) => { await sendSeq(["M5"], l); S.laser = false; pose(); updateTags(); },
   sendCommand: async (a, l) => {
     const cmd = String(a[0] == null ? "" : a[0]).replace(/\n+$/, "");
     const m = cmd.match(/^G([01])\b(.*)$/i);
@@ -877,7 +1064,7 @@ const API = {
 class ValueError extends Error {}
 function floats(text) { const m = String(text || "").match(/[-+]?\d*\.?\d+/g); return m ? m.map(Number) : []; }
 let toolWarned = {};
-function warnTool(fn, need) { if (toolWarned[fn]) return; toolWarned[fn] = true; warn("  ↳ " + fn + "() es para la " + need + ", pero la herramienta elegida es " + TOOL[S.tool].name.toLowerCase() + ". Cámbiala arriba del editor."); }
+function warnTool(fn, need) { if (toolWarned[fn]) return; toolWarned[fn] = true; warn("  ↳ " + fn + "() es para " + need + ", pero la herramienta elegida es " + TOOL[S.tool].name.toLowerCase() + ". Cámbiala arriba del editor."); }
 
 /* ===================== Python (Skulpt) ===================== */
 const STOP = { stop: true };
@@ -980,8 +1167,236 @@ function gcode(cmd, ln) {
   const s = document.createElement("span");
   const n = document.createElement("span"); n.className = "ln"; n.textContent = ln ? "L" + ln : ""; s.appendChild(n);
   s.appendChild(document.createTextNode(cmd + "\n"));
-  gEl.appendChild(s); gEl.parentElement.scrollTop = gEl.parentElement.scrollHeight;
+  gEl.appendChild(s); gEl.scrollTop = gEl.scrollHeight;
 }
+
+/* ===================== Movimiento manual, parada de emergencia y consola G-code ===================== */
+function eStop() {
+  stop(); // cancela el programa en curso y su animación
+  const btn = document.getElementById("estopBtn");
+  btn.classList.add("hit"); setTimeout(() => btn.classList.remove("hit"), 450);
+  if (Serial.connected) {
+    gcode("M410", null);
+    Serial.send("M410", true).then(
+      () => info("  ↳ M410 enviado al robot: movimiento abortado."),
+      (e) => err("No se pudo enviar M410 al robot: " + ((e && e.message) || e))
+    );
+  }
+  warn("■ Parada de emergencia" + (Serial.connected ? " (M410)" : "") + (S.running ? "" : ": no había nada en marcha."));
+}
+
+let jogBusy = false;
+async function jog(dx, dy, dz) {
+  if (S.running || jogBusy) return;
+  jogBusy = true;
+  try {
+    const t = { x: S.pos.x + dx, y: S.pos.y + dy, z: S.pos.z + dz };
+    const words = [];
+    if (dx) words.push("X" + fmt(dx));
+    if (dy) words.push("Y" + fmt(dy));
+    if (dz) words.push("Z" + fmt(dz));
+    // moveTo valida antes de enviar: si el punto no se alcanza, lanza y nada llega al robot
+    const sim = moveTo(t, "linear", S.jogSpeed / 100);
+    await Promise.all([sim, sendSeq(["G91", "G1 " + words.join(" "), "G90"], null)]);
+  } catch (e) {
+    if (e && e !== STOP && e.message) warn("  ↳ " + e.message);
+  } finally {
+    jogBusy = false;
+  }
+}
+async function goHomeUI() {
+  if (S.running || jogBusy) return;
+  jogBusy = true;
+  try { await API.goHome([], null); } catch (e) { /* el mensaje de error ya lo muestra moveTo */ }
+  finally { jogBusy = false; }
+}
+
+const GCMD_HIST = [];
+let ghistIdx = 0;
+function echoG(text, cls) {
+  const s = document.createElement("span");
+  if (cls) s.className = cls;
+  s.textContent = text + "\n";
+  gEl.appendChild(s);
+  gEl.scrollTop = gEl.scrollHeight;
+}
+function gcodeHelp() {
+  echoG("Consola G-code: prueba comandos como los que envía robot.py.", "cmd");
+  echoG("  G0 X0 Y200 Z50   mover (modo arco); con G1 lo hace en línea recta", "info");
+  echoG("  M1400 A1023      bomba al máximo · M1400 A0 la apaga", "info");
+  echoG("  M1401 A1 / A0    válvula abierta / cerrada", "info");
+  echoG("  M9996 A1B90C60   girar la ventosa 90° a velocidad 60", "info");
+  echoG("  M1008 A3         pedir la posición actual", "info");
+  echoG("Con el robot conectado, cualquier otro comando se le envía tal cual.", "info");
+  echoG("También: help (esta ayuda) · clear (limpiar) · flechas ↑ ↓ (historial)", "info");
+}
+async function execGcodeCmd(raw) {
+  const cmd = raw.trim();
+  if (!cmd) return;
+  echoG("> " + cmd, "cmd");
+  const low = cmd.toLowerCase();
+  if (low === "help" || low === "h" || low === "?") { gcodeHelp(); return; }
+  if (low === "clear" || low === "cls") { gEl.innerHTML = ""; return; }
+  try {
+    const m = cmd.match(/^G([01])\b(.*)$/i);
+    if (m) {
+      const get = (k) => { const r = m[2].match(new RegExp(k + "\\s*(-?[\\d.]+)", "i")); return r ? parseFloat(r[1]) : null; };
+      const p = { x: get("X") ?? S.pos.x, y: get("Y") ?? S.pos.y, z: get("Z") ?? S.pos.z };
+      const sim = moveTo(p, m[1] === "1" ? "linear" : "arc");
+      const inf = Serial.connected ? (await Promise.all([sim, Serial.send(cmd)]))[1] : await sim;
+      if (inf) echoG("← " + inf, "info");
+      return;
+    }
+    const ml = cmd.match(/^M([35])\b/i);
+    if (ml) {
+      if (Serial.connected) await Serial.send(cmd);
+      S.laser = ml[1] === "3";
+      pose(); updateTags();
+      if (S.tool !== "laser") echoG("ℹ El láser está " + (S.laser ? "encendido" : "apagado") + " en la simulación; elige el módulo «Láser» para ver el haz.", "warn");
+      return;
+    }
+    if (/^M140[01]\s*A/i.test(cmd)) {
+      if (Serial.connected) await Serial.send(cmd);
+      airState(cmd);
+      if (S.tool === "suction") {
+        if (suctionActive()) { await wait(250 / S.speed); tryAttach(); }
+        else if (S.held) await release();
+      }
+      updateTags();
+      return;
+    }
+    if (Serial.connected) {
+      const inf = await Serial.send(cmd);
+      echoG(inf ? "← " + inf : "ok", "info");
+    } else {
+      echoG("ℹ La simulación no interpreta " + cmd.split(" ")[0].toUpperCase() + "; con el robot conectado se enviaría por USB.", "warn");
+    }
+  } catch (e) {
+    if (e === STOP) echoG("■ abortado", "warn");
+    else echoG("✗ " + ((e && e.message) || e), "err");
+  }
+}
+
+/* ===================== Teach & Play (macros) ===================== */
+const MODES = { arc: "Arco", linear: "Lineal", none: "Sin mover" };
+const EFFECTS = {
+  none: "Sin acción",
+  suctionOn: "Ventosa: aspirar",
+  suctionOff: "Ventosa: soltar",
+  gripOpen: "Pinza: abrir",
+  gripClose: "Pinza: agarrar",
+  gripIdle: "Pinza: reposo",
+  laserOn: "Láser: encender",
+  laserOff: "Láser: apagar"
+};
+const macro = { steps: [], busy: false, playIdx: null };
+function loadMacro() {
+  try {
+    const arr = JSON.parse(store("huenit-sim-macro") || "null");
+    if (!Array.isArray(arr)) return;
+    macro.steps = arr
+      .filter((s) => s && [s.x, s.y, s.z].every((v) => typeof v === "number" && isFinite(v)))
+      .map((s) => ({
+        x: s.x, y: s.y, z: s.z,
+        mode: MODES[s.mode] ? s.mode : "arc",
+        effect: EFFECTS[s.effect] ? s.effect : "none",
+        t: Math.max(0, +s.t || 0)
+      }));
+  } catch (e) { /* macro guardada corrupta: se ignora */ }
+}
+function saveMacro() { store("huenit-sim-macro", JSON.stringify(macro.steps)); }
+function addStep() {
+  if (S.running || macro.busy) return;
+  macro.steps.push({
+    x: Math.round(S.pos.x * 10) / 10, y: Math.round(S.pos.y * 10) / 10, z: Math.round(S.pos.z * 10) / 10,
+    mode: "arc", effect: "none", t: 0
+  });
+  saveMacro(); renderMacro();
+}
+function stepOp(i, act) {
+  const s = macro.steps;
+  if (act === "del") s.splice(i, 1);
+  else if (act === "up" && i > 0) { const a = s[i - 1]; s[i - 1] = s[i]; s[i] = a; }
+  else if (act === "down" && i >= 0 && i < s.length - 1) { const a = s[i + 1]; s[i + 1] = s[i]; s[i] = a; }
+  else return;
+  saveMacro(); renderMacro();
+}
+function optHtml(map, cur) { return Object.keys(map).map((v) => '<option value="' + v + '"' + (v === cur ? " selected" : "") + ">" + map[v] + "</option>").join(""); }
+function renderMacro() {
+  const el = document.getElementById("teachList");
+  const n = macro.steps.length;
+  const badge = document.getElementById("teachCount"); if (badge) badge.textContent = n;
+  if (!n) { el.innerHTML = '<p class="empty">Sin pasos todavía. Mueve el brazo con el panel «Mover» y pulsa «Añadir paso» para guardar cada posición.</p>'; return; }
+  el.innerHTML = macro.steps.map((st, i) =>
+    '<div class="mstep' + (i === macro.playIdx ? " playing" : "") + '" data-i="' + i + '">' +
+    '<span class="mnum">' + (i + 1) + '</span>' +
+    '<span class="mpos">X' + fmt(st.x) + " · Y" + fmt(st.y) + " · Z" + fmt(st.z) + "</span>" +
+    '<select class="mmode" aria-label="Modo del movimiento">' + optHtml(MODES, st.mode) + "</select>" +
+    '<select class="meffect" aria-label="Acción de la herramienta">' + optHtml(EFFECTS, st.effect) + "</select>" +
+    '<label class="lbl">T</label><input class="mt" type="number" min="0" step="0.5" value="' + st.t + '" aria-label="Pausa en segundos"><span class="lbl">s</span>' +
+    '<span class="grow"></span>' +
+    '<button class="btn" data-act="up" type="button" title="Subir paso" aria-label="Subir paso"' + (i === 0 ? " disabled" : "") + ">↑</button>" +
+    '<button class="btn" data-act="down" type="button" title="Bajar paso" aria-label="Bajar paso"' + (i === n - 1 ? " disabled" : "") + ">↓</button>" +
+    '<button class="btn" data-act="del" type="button" title="Quitar paso" aria-label="Quitar paso">✕</button>' +
+    "</div>"
+  ).join("");
+}
+function markStep(i) {
+  document.querySelectorAll("#teachList .mstep").forEach((r) => r.classList.toggle("playing", +r.dataset.i === i));
+}
+async function playStep(st) {
+  if (st.mode !== "none") await (st.mode === "linear" ? API.moveG1 : API.moveG0)([st.x, st.y, st.z], null);
+  if (st.effect === "suctionOn") await API.suctionOn([], null);
+  else if (st.effect === "suctionOff") await API.suctionOff([], null);
+  else if (st.effect === "gripOpen") await API.gripper([1], null);
+  else if (st.effect === "gripClose") await API.gripper([2], null);
+  else if (st.effect === "gripIdle") await API.gripper([0], null);
+  else if (st.effect === "laserOn") await API.laserOn([], null);
+  else if (st.effect === "laserOff") await API.laserOff([], null);
+  if (st.t > 0) await wait(Serial.connected ? st.t * 1000 : (st.t * 1000) / S.speed);
+}
+async function playMacro() {
+  if (S.running || macro.busy) return;
+  if (!macro.steps.length) {
+    const st = document.getElementById("teachStatus");
+    st.className = "status-line err"; st.textContent = "La macro está vacía: añade pasos primero.";
+    return;
+  }
+  macro.busy = true; S.running = true; stopFlag = false; setRunning(true);
+  showTab("teach");
+  info("▶ Macro: reproduciendo " + macro.steps.length + " pasos…");
+  try {
+    for (let i = 0; i < macro.steps.length; i++) { macro.playIdx = i; markStep(i); await playStep(macro.steps[i]); }
+    ok("✓ Macro terminada.");
+  } catch (e) {
+    if (e === STOP) warn("■ Macro detenida.");
+    else err("La macro falló: " + ((e && e.message) || e));
+  } finally {
+    macro.playIdx = null; markStep(-1);
+    S.running = false; setRunning(false); macro.busy = false;
+  }
+}
+const MACRO_GCODE_EFFECT = {
+  suctionOn: ["M1401 A0", "M1400 A1023"],
+  suctionOff: ["M1400 A0", "M1401 A1", "G4 P300", "M1401 A0"],
+  gripOpen: ["M1401 A0", "M1400 A1000"],
+  gripClose: ["M1401 A1", "M1400 A1000", "G4 P3000", "M1400 A300"],
+  gripIdle: ["M1400 A0", "M1401 A1", "G4 P300", "M1400 A0", "M1401 A0"],
+  laserOn: ["M3"],
+  laserOff: ["M5"]
+};
+function macroGcode() {
+  const lines = [];
+  macro.steps.forEach((st) => {
+    if (st.mode !== "none") lines.push((st.mode === "linear" ? "G1" : "G0") + " X" + fmt(st.x) + " Y" + fmt(st.y) + " Z" + fmt(st.z), "M400");
+    const eff = MACRO_GCODE_EFFECT[st.effect];
+    if (eff) lines.push(...eff);
+    if (st.t > 0) lines.push("G4 P" + Math.round(st.t * 1000));
+  });
+  return lines.join("\n");
+}
+loadMacro();
+renderMacro();
 
 /* ===================== Interfaz ===================== */
 const EXAMPLES = [
@@ -1089,6 +1504,48 @@ for z in [0, 50, 100, 150]:
 
 # Prueba: ¿qué pasa si pedimos un punto imposible?
 robot.moveG0(0, 180, 150)
+` },
+  { id: "dibujar", name: "Pluma: dibujar un cuadrado", tool: "pen", code:
+`import robot
+
+# Dibuja un cuadrado de 100 mm con el portabolígrafos
+MESA = -50    # Z de la mesa con la pluma (valor aproximado: mide el de tu robot)
+ALTO = -30    # Z para desplazarse sin dibujar
+
+robot.moveG0(-110, 240, ALTO)   # encima de la primera esquina
+robot.moveG0(-110, 240, MESA)   # bajar la pluma: empieza el trazo
+
+robot.moveG1(-10, 240, MESA)    # lado 1 (G1 = línea recta)
+robot.moveG1(-10, 340, MESA)    # lado 2
+robot.moveG1(-110, 340, MESA)   # lado 3
+robot.moveG1(-110, 240, MESA)   # lado 4: cierra el cuadrado
+
+robot.moveG0(-110, 240, ALTO)   # levantar la pluma
+robot.goHome()
+print("¡Cuadrado dibujado!")
+` },
+  { id: "laser", name: "Láser: grabar un cuadrado", tool: "laser", code:
+`import robot
+
+# Graba un cuadrado de 60 mm con el módulo láser
+# OJO: en el robot real el láser quema de verdad. Mismo cuidado que en el
+# modo láser del programa Huenit: nunca lo apuntes a nadie y vigila la potencia.
+MESA = -45    # Z de la mesa con el láser (valor aproximado: mide el de tu robot)
+ALTO = -25    # Z para desplazarse sin grabar
+
+robot.moveG0(-100, 260, ALTO)   # encima de la primera esquina
+robot.laserOn()                 # encender el láser
+
+robot.moveG0(-100, 260, MESA)   # bajar a la altura focal: empieza a grabar
+robot.moveG1(-40, 260, MESA)
+robot.moveG1(-40, 320, MESA)
+robot.moveG1(-100, 320, MESA)
+robot.moveG1(-100, 260, MESA)
+
+robot.moveG0(-100, 260, ALTO)   # subir
+robot.laserOff()                # apagar el láser
+robot.goHome()
+print("¡Cuadrado grabado!")
 ` }
 ];
 const DEFAULT = EXAMPLES[1];
@@ -1132,7 +1589,7 @@ document.getElementById("restoreBtn").addEventListener("click", () => {
 function setTool(t) {
   if (S.running) return;
   S.tool = t; document.getElementById("toolSel").value = t; store("huenit-sim-tool", t);
-  S.held = null; S.pump = 0; S.valve = 0; S.grip = 0;
+  S.held = null; S.pump = 0; S.valve = 0; S.grip = 0; S.laser = false;
   pose(); updateTags(); renderScene();
 }
 document.getElementById("toolSel").addEventListener("change", (e) => setTool(e.target.value));
@@ -1140,6 +1597,91 @@ document.getElementById("speedSel").addEventListener("change", (e) => { S.speed 
 document.getElementById("runBtn").addEventListener("click", run);
 document.getElementById("stopBtn").addEventListener("click", stop);
 document.getElementById("resetBtn").addEventListener("click", () => { if (!S.running) { resetScene(); clearMarks(); } });
+document.getElementById("estopBtn").addEventListener("click", eStop);
+document.querySelectorAll("[data-jog]").forEach((b) => b.addEventListener("click", () => {
+  const d = b.dataset.jog;
+  if (d === "home") { goHomeUI(); return; }
+  const v = d.split(",").map(Number), st = S.jogStep;
+  jog(v[0] * st, v[1] * st, (v[2] || 0) * st);
+}));
+document.getElementById("jogStep").addEventListener("change", (e) => { S.jogStep = parseFloat(e.target.value); });
+const jogSpeedEl = document.getElementById("jogSpeed");
+jogSpeedEl.addEventListener("input", () => {
+  S.jogSpeed = parseInt(jogSpeedEl.value, 10);
+  document.getElementById("jogSpeedVal").textContent = S.jogSpeed + "%";
+});
+jogSpeedEl.addEventListener("change", async () => {
+  if (!Serial.connected) return;
+  try { await Serial.send("M220 S" + S.jogSpeed); info("  ↳ Velocidad al " + S.jogSpeed + "% (M220) también en el robot."); }
+  catch (e) { warn("  ↳ El robot no acepta M220: la velocidad solo se aplicará en la simulación."); }
+});
+const gcodeInput = document.getElementById("gcodeInput");
+document.getElementById("gcodeForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const v = gcodeInput.value;
+  if (!v.trim()) return;
+  GCMD_HIST.push(v); ghistIdx = GCMD_HIST.length;
+  gcodeInput.value = "";
+  await execGcodeCmd(v);
+  gcodeInput.focus();
+});
+gcodeInput.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowUp" && ghistIdx > 0) { e.preventDefault(); ghistIdx--; gcodeInput.value = GCMD_HIST[ghistIdx]; }
+  else if (e.key === "ArrowDown") {
+    e.preventDefault();
+    if (ghistIdx < GCMD_HIST.length - 1) { ghistIdx++; gcodeInput.value = GCMD_HIST[ghistIdx]; }
+    else { ghistIdx = GCMD_HIST.length; gcodeInput.value = ""; }
+  }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const a = document.activeElement;
+  if ((cm.hasFocus && cm.hasFocus()) || (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return;
+  if (e.key === "Home") { e.preventDefault(); goHomeUI(); return; }
+  const st = S.jogStep;
+  let d = null;
+  if (e.key === "ArrowLeft") d = [-st, 0, 0];
+  else if (e.key === "ArrowRight") d = [st, 0, 0];
+  else if (e.key === "ArrowUp") d = [0, st, 0];
+  else if (e.key === "ArrowDown") d = [0, -st, 0];
+  else if (e.key === "PageUp") d = [0, 0, st];
+  else if (e.key === "PageDown") d = [0, 0, -st];
+  else return;
+  e.preventDefault();
+  jog(d[0], d[1], d[2]);
+});
+
+document.getElementById("teachAdd").addEventListener("click", addStep);
+document.getElementById("teachPlay").addEventListener("click", playMacro);
+document.getElementById("teachClear").addEventListener("click", () => {
+  if (!macro.steps.length) return;
+  macro.steps = []; saveMacro(); renderMacro();
+  const st = document.getElementById("teachStatus");
+  st.className = "status-line"; st.textContent = "Macro vaciada.";
+});
+document.getElementById("teachCopy").addEventListener("click", () => {
+  const st = document.getElementById("teachStatus");
+  if (!macro.steps.length) { st.className = "status-line err"; st.textContent = "La macro está vacía."; return; }
+  const text = macroGcode();
+  const done = () => { st.className = "status-line ok"; st.textContent = "G-code copiado (" + text.split("\n").length + " líneas). Pégalo en la consola del programa Huenit."; };
+  const fail = () => { st.className = "status-line err"; st.textContent = "No se pudo copiar. Selecciona el texto manualmente."; };
+  try { navigator.clipboard.writeText(text).then(done, () => { fallbackCopy(text) ? done() : fail(); }); }
+  catch (e) { fallbackCopy(text) ? done() : fail(); }
+});
+document.getElementById("teachList").addEventListener("change", (e) => {
+  const row = e.target.closest(".mstep"); if (!row) return;
+  const st = macro.steps[+row.dataset.i]; if (!st) return;
+  if (e.target.classList.contains("mmode")) st.mode = e.target.value;
+  else if (e.target.classList.contains("meffect")) st.effect = e.target.value;
+  else if (e.target.classList.contains("mt")) st.t = Math.max(0, parseFloat(e.target.value) || 0);
+  else return;
+  saveMacro();
+});
+document.getElementById("teachList").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b || !b.dataset.act) return;
+  const row = b.closest(".mstep"); if (!row) return;
+  stepOp(+row.dataset.i, b.dataset.act);
+});
 
 function setRunning(r) {
   document.getElementById("runBtn").disabled = r;
@@ -1147,6 +1689,12 @@ function setRunning(r) {
   document.getElementById("resetBtn").disabled = r;
   document.getElementById("toolSel").disabled = r;
   document.getElementById("serialBtn").disabled = r;
+  document.querySelectorAll("[data-jog]").forEach((b) => { b.disabled = r; });
+  document.getElementById("jogStep").disabled = r;
+  document.getElementById("jogSpeed").disabled = r;
+  document.getElementById("gcodeInput").disabled = r;
+  ["teachAdd", "teachPlay", "teachClear", "teachCopy"].forEach((id) => { document.getElementById(id).disabled = r; });
+  document.querySelectorAll("#teachList select, #teachList input, #teachList button").forEach((b) => { b.disabled = r; });
 }
 let runMark = null, errMark = null;
 function markRun(ln) { if (!ln || !cm.addLineClass) return; clearRun(); runMark = cm.addLineClass(ln - 1, "background", "run-line"); cm.scrollIntoView({ line: ln - 1, ch: 0 }, 60); }
@@ -1157,8 +1705,12 @@ function clearMarks() { clearRun(); clearErr(); }
 
 function updateTags() {
   const tt = document.getElementById("tagTool");
-  const active = S.tool === "suction" ? suctionActive() : S.grip === 2;
-  tt.textContent = TOOL[S.tool].name + (S.tool === "suction" ? (active ? " · encendida" : " · apagada") : [" · reposo", " · abierta", " · cerrada"][S.grip]);
+  let active, label;
+  if (S.tool === "pen") { active = penTouching(); label = "Pluma" + (active ? " · dibujando" : " · arriba"); }
+  else if (S.tool === "laser") { active = S.laser; label = "Láser" + (active ? " · encendido" : " · apagado"); }
+  else if (S.tool === "suction") { active = suctionActive(); label = "Ventosa" + (active ? " · encendida" : " · apagada"); }
+  else { active = S.grip === 2; label = "Pinza" + [" · reposo", " · abierta", " · cerrada"][S.grip]; }
+  tt.textContent = label;
   tt.classList.toggle("on", active);
   const th = document.getElementById("tagHold");
   th.hidden = !S.held; if (S.held) { th.textContent = "Sujetando " + S.held.label.toLowerCase(); th.classList.add("on"); }
@@ -1189,7 +1741,7 @@ function renderScene() {
 
 function showTab(id) {
   document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", String(t.dataset.tab === id)));
-  ["console", "gcode", "scene", "ref"].forEach((p) => { document.getElementById("pane-" + p).hidden = p !== id; });
+  ["console", "gcode", "scene", "teach", "ref"].forEach((p) => { document.getElementById("pane-" + p).hidden = p !== id; });
 }
 document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => showTab(t.dataset.tab)));
 
