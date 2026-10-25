@@ -30,16 +30,17 @@ The page is divided into a sidebar, a main section and, on the right, the 3D
 scene with the manual movement panel, which stays visible in every section
 except «Funciones» (Functions) and «Robot». The sidebar holds the navigation,
 the tool selector, a light/dark theme toggle and the connection status. You
-jump between sections with Ctrl+1…8 (Cmd+1…8 on Mac), in this order:
+jump between sections with Ctrl+1…9 (Cmd+1…9 on Mac), in this order:
 
 1. **Programar** (Program) — Python editor with the examples and the Run / Stop / Reset buttons.
 2. **Consola** (Console) — what the program prints, with a Clear button.
 3. **Comandos al robot** (Commands to the robot) — interactive G-code console.
 4. **Teach & Play** — macro recorder.
 5. **Dibujar** (Draw) — canvas for freehand drawing that the arm reproduces.
-6. **Escena** (Scene) — position of the objects on the table.
-7. **Funciones** (Functions) — `robot` library reference.
-8. **Robot** — running the same code on the real arm and USB connection.
+6. **Cámara** (Camera) — first-person arm camera view with color-based cube detection.
+7. **Escena** (Scene) — position of the objects on the table.
+8. **Funciones** (Functions) — `robot` library reference.
+9. **Robot** — running the same code on the real arm and USB connection.
 
 When you run a program (or an error occurs) the view switches automatically
 to **Consola** so you can see what happens.
@@ -78,6 +79,13 @@ Besides running Python programs, the page lets you drive the arm by hand:
   connected robot, it draws for real. **Copiar Python** and **Copiar G-code**
   export the drawing as a program or as commands ready for the Huenit
   program. The canvas is saved automatically in the browser.
+- **Cámara** (Camera, tool «Cámara (visión)» and section «Cámara»): the section
+  shows the arm camera's first-person view with detection boxes over visible
+  cubes; the color selector locates a cube and gives its table coordinates,
+  **Foto** freezes the frame and **Descargar PNG** saves the image. In
+  programs, `robot.cameraObjects()` lists seen cubes and
+  `robot.findColor("rojo")` gives its position (simulator functions: the real
+  camera is programmed with `ai.py` on the module itself and has no G-code).
 - **Pen** (tool selector «Portabolígrafos»): when the tip touches the table
   the arm draws on it, with any movement (program, «Mover», console or
   macro). The example «Pluma: dibujar un cuadrado» (Pen: draw a square)

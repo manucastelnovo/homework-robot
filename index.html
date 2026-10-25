@@ -151,6 +151,12 @@ select { background: var(--sunk); color: var(--ink); border: 1px solid var(--lin
 .drawhint { margin: 0; padding: 8px 12px; font-size: 0.78rem; color: var(--muted); border-bottom: 1px solid var(--line); }
 .draw-wrap { flex: 1; min-height: 320px; background: #fdfdfb; }
 #drawCanvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.cam-card { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.cam-card > .bar:first-child { border-bottom: 1px solid var(--line); }
+.camhint { margin: 0; padding: 8px 12px; font-size: 0.78rem; color: var(--muted); border-bottom: 1px solid var(--line); }
+.camfeed-wrap { flex: 1; min-height: 300px; position: relative; background: #000; }
+#camFeed { display: block; width: 100%; height: 100%; }
+#camOverlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .console-card, .gcode-card, .teach-card { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
 .console-card > .bar { border-bottom: 1px solid var(--line); }
 #log { flex: 1; overflow: auto; padding: 10px 12px; }
@@ -265,6 +271,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
         <button class="navitem" type="button" data-view="gcode" id="nav-gcode"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 4.5 3.5 3.5-3.5 3.5M8.5 12h4"/></svg>Comandos al robot<span class="count" id="gcodeCount">0</span></button>
         <button class="navitem" type="button" data-view="teach" id="nav-teach"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M2.2 4h6M2.2 8h6M2.2 12h3.2"/><path d="M10.2 9.8v4l3.6-2z" fill="currentColor" stroke="none"/></svg>Teach &amp; Play<span class="count" id="teachCount">0</span></button>
         <button class="navitem" type="button" data-view="draw" id="nav-draw"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 13.5 3.4 10.2 10.9 2.7l2.4 2.4-7.5 7.5z"/><path d="m9.6 4.1 2.4 2.4"/></svg>Dibujar</button>
+        <button class="navitem" type="button" data-view="camera" id="nav-camera"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.8" y="4.5" width="12.4" height="8.5" rx="1.5"/><circle cx="8" cy="8.75" r="2.2"/><path d="M5.6 4.5 6.9 3h2.2l1.3 1.5"/></svg>Cámara</button>
         <button class="navitem" type="button" data-view="scene" id="nav-scene"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="2.4" y="2.4" width="4.6" height="4.6" rx="1"/><rect x="9" y="2.4" width="4.6" height="4.6" rx="1"/><rect x="2.4" y="9" width="4.6" height="4.6" rx="1"/><rect x="9" y="9" width="4.6" height="4.6" rx="1"/></svg>Escena</button>
         <button class="navitem" type="button" data-view="ref" id="nav-ref"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5h4.2L11.5 5.5v8H4.5z"/><path d="M8.7 2.5V6h2.8M6.8 8.6h2.6M6.8 11h2.6"/></svg>Funciones</button>
         <button class="navitem" type="button" data-view="robot" id="nav-robot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M2.5 13.5h11M5 13.5 6.8 7.5l4.2-2.6 2.3 2.2"/><circle cx="6.8" cy="7.5" r="1.3"/><circle cx="11" cy="4.9" r="1.3"/><path d="M13.3 7.1v2.4"/></svg>Robot</button>
@@ -276,6 +283,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
           <option value="gripper">Pinza blanda</option>
           <option value="pen">Portabolígrafos (dibujo)</option>
           <option value="laser">Láser (grabado)</option>
+          <option value="camera">Cámara (visión)</option>
         </select>
       </div>
       <div class="side-block">
@@ -335,6 +343,29 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
         </div>
       </section>
 
+      <section class="view" id="view-camera" hidden>
+        <div class="card cam-card">
+          <div class="bar">
+            <button class="btn primary" id="camShot" type="button">Foto</button>
+            <button class="btn" id="camDownload" type="button">Descargar PNG</button>
+            <span class="grow"></span>
+            <label class="lbl" for="camColor">Buscar color</label>
+            <select id="camColor">
+              <option value="">(ninguno)</option>
+              <option value="rojo">rojo</option>
+              <option value="verde">verde</option>
+              <option value="amarillo">amarillo</option>
+            </select>
+          </div>
+          <p class="camhint">Vista de la cámara del brazo. Las cajas marcan los cubos que ve (detección); elige un color para localizarlo en coordenadas de la mesa.</p>
+          <div class="camfeed-wrap">
+            <canvas id="camFeed"></canvas>
+            <canvas id="camOverlay"></canvas>
+          </div>
+          <div class="bar sep"><span class="status-line" id="camStatus"></span></div>
+        </div>
+      </section>
+
       <section class="view" id="view-scene" hidden>
         <div class="card pad-card">
           <p>Posición de cada objeto en coordenadas del robot (mm). La columna "tocar arriba" es la Z que debe tener la herramienta actual para tocar la cara superior del cubo.</p>
@@ -389,6 +420,8 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
             <tr><td>robot.suctionAngle(grados, velocidad)</td><td>Gira la ventosa (módulo giratorio). De 0 a 269 grados.</td></tr>
             <tr><td>Portabolígrafos</td><td>Elige la herramienta «Pluma»: cuando la punta toca la mesa, el brazo dibuja. Con <code>moveG1</code> traza líneas rectas; al subir la Z levanta la pluma.</td></tr>
             <tr><td>robot.laserOn() / robot.laserOff()</td><td>Enciende o apaga el láser (herramienta «Láser»). Al pasar por la altura focal deja la marca de grabado. En el robot real quema de verdad: mismo cuidado que el modo láser del programa Huenit. En la consola G-code equivale a <code>M3</code> / <code>M5</code>.</td></tr>
+            <tr><td>robot.cameraObjects()</td><td>Solo simulación: devuelve la lista de cubos que ve la cámara, como <code>[color, X, Y, altura]</code> (la cámara real se programa con <code>ai.py</code> en el propio módulo; no tiene comandos G-code).</td></tr>
+            <tr><td>robot.findColor("rojo")</td><td>Solo simulación: devuelve <code>[X, Y]</code> del cubo de ese color (<code>rojo</code>, <code>verde</code> o <code>amarillo</code>) o <code>0</code> si no lo hay. La sección «Cámara» muestra la vista en primera persona con las detecciones.</td></tr>
             <tr class="group"><td colspan="2">Otras</td></tr>
             <tr><td>time.sleep(segundos)</td><td>Espera. Necesita <code>import time</code>.</td></tr>
             <tr><td>robot.getDeg()</td><td>Ángulos de los motores. En la simulación es aproximado.</td></tr>
@@ -468,7 +501,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
               <input type="range" id="jogSpeed" min="10" max="100" step="5" value="100">
               <span class="jogval" id="jogSpeedVal">100%</span>
             </div>
-            <span class="joghint">Flechas = X/Y · Re Pág/Av Pág = Z · Inicio = casa · Ctrl+1…8 = secciones</span>
+            <span class="joghint">Flechas = X/Y · Re Pág/Av Pág = Z · Inicio = casa · Ctrl+1…9 = secciones</span>
           </div>
         </div>
       </aside>
@@ -518,7 +551,8 @@ const TOOL = {
   suction: { name: "Ventosa", T: 60 },
   gripper: { name: "Pinza", T: 20 },
   pen: { name: "Pluma", T: 50 }, // T aproximado: en el programa Huenit la profundidad de dibujo es configurable
-  laser: { name: "Láser", T: 45 } // T aproximado: distancia focal del módulo láser
+  laser: { name: "Láser", T: 45 }, // T aproximado: distancia focal del módulo láser
+  camera: { name: "Cámara", T: 40 } // T aproximado: el módulo real lleva su propio procesador KPU y se programa con ai.py
 };
 const HOME = { x: 0, y: 180, z: 0 };
 const CUBE = 25;
@@ -685,6 +719,14 @@ function buildRobot() {
   const lspot = new THREE.Mesh(new THREE.CircleGeometry(5, 20), new THREE.MeshBasicMaterial({ color: 0xff5533, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }));
   lspot.rotation.x = -Math.PI / 2; laser.add(lspot); parts.lspot = lspot;
   parts.laser = laser;
+  const camera = new THREE.Group(); toolG.add(camera);
+  const cLen = G.flange - TOOL.camera.T;
+  const cbody = shadow(new THREE.Mesh(new THREE.BoxGeometry(22, 16, 20), dark)); cbody.position.y = -10; camera.add(cbody);
+  const clens = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 4, 20), new THREE.MeshStandardMaterial({ color: 0x1971c2, roughness: 0.2 }));
+  clens.position.y = -cLen + 2; camera.add(clens);
+  const ccone = new THREE.Mesh(new THREE.ConeGeometry(32, 1, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0x66aaff, transparent: true, opacity: 0.1, side: THREE.DoubleSide, depthWrite: false }));
+  camera.add(ccone); parts.ccone = ccone;
+  parts.camera = camera;
   parts.turret = turret;
 }
 
@@ -730,6 +772,15 @@ function pose() {
       parts.beam.scale.y = h;
       parts.beam.position.y = -(G.flange - TOOL.laser.T) - h / 2;
       parts.lspot.position.y = -k.h;
+    }
+  }
+  if (parts.camera) {
+    parts.camera.visible = S.tool === "camera";
+    parts.ccone.visible = S.tool === "camera";
+    if (S.tool === "camera") {
+      const h = Math.max(tip().h, 0.5); // cono de visión: de la cámara a la mesa
+      parts.ccone.scale.y = h;
+      parts.ccone.position.y = -(G.flange - TOOL.camera.T) - h / 2;
     }
   }
   const open = S.grip === 1 ? 0.32 : S.grip === 2 ? -0.05 : 0.1;
@@ -787,6 +838,7 @@ function loop(t) {
   if (anim) anim.step(t);
   if (ghost.visible) { ghost.material.opacity = Math.max(0, ghost.material.opacity - 0.004); if (ghost.material.opacity <= 0) ghost.visible = false; }
   controls.update();
+  if (camRenderer && !camFrozen && !document.getElementById("view-camera").hidden) camFrame();
   renderer.render(scene, camera);
 }
 function pushTrail() {
@@ -1107,6 +1159,12 @@ const API = {
     return [S.theta, k.a, k.fore].map((v) => Math.round((v * 180) / Math.PI * 10) / 10);
   },
   checkXYZ: (a) => { const p = xyzArgs("checkXYZ", a); return checkXYZ(p.x, p.y, p.z); },
+  cameraObjects: () => S.cubes.map((c) => [c.id, Math.round(c.x), Math.round(c.y), Math.round(c.h)]),
+  findColor: (a) => {
+    const name = String(a[0] || "").toLowerCase();
+    const c = S.cubes.find((k) => k.id === name);
+    return c ? [Math.round(c.x), Math.round(c.y)] : 0;
+  },
   freeMod: async (a, l) => { await sendSeq(["M84"], l); S.free = true; info("  ↳ Motores apagados: en el robot real puedes mover el brazo con la mano."); },
   unsetFreeMod: async (a, l) => { await sendSeq(["M17", "M1008 A1", "G90"], l); S.free = false; },
   suctionAngle: async (a, l) => {
@@ -1654,6 +1712,117 @@ document.getElementById("drawCopyG").addEventListener("click", () => {
 drawLoad();
 drawFit();
 
+/* ===================== Cámara: vista en primera persona ===================== */
+let camRenderer = null, cam2 = null, camFrozen = false;
+function camInit() {
+  if (camRenderer || !window.THREE) return;
+  camRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById("camFeed"), antialias: true });
+  camRenderer.setPixelRatio(1);
+  cam2 = new THREE.PerspectiveCamera(75, 4 / 3, 1, 2000);
+  camFit();
+}
+function camFit() {
+  if (!camRenderer) return;
+  const r = document.getElementById("camFeed").getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  camRenderer.setSize(Math.round(r.width), Math.round(r.height), false);
+  cam2.aspect = r.width / r.height;
+  cam2.updateProjectionMatrix();
+}
+function camUpdate() {
+  const t = tip();
+  const th = Math.atan2(S.pos.x, S.pos.y); // hacia dónde mira el brazo
+  cam2.position.copy(w2t(t.x, t.y, t.h + 30));
+  cam2.lookAt(w2t(S.pos.x + Math.sin(th) * 110, S.pos.y + Math.cos(th) * 110, 0));
+}
+function camDetect() {
+  const r = document.getElementById("camOverlay").getBoundingClientRect();
+  const boxes = [];
+  if (!cam2 || !r.width) return boxes;
+  S.cubes.forEach((c) => {
+    const pts = [];
+    let behind = false;
+    [-CUBE / 2, CUBE / 2].forEach((dx) => [-CUBE / 2, CUBE / 2].forEach((dy) => [0, CUBE].forEach((dz) => {
+      const v = w2t(c.x + dx, c.y + dy, c.h + dz).project(cam2);
+      if (v.z > 1 || v.z < -1) behind = true;
+      pts.push(v);
+    })));
+    if (behind) return;
+    const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+    if (Math.max(...xs) < -1 || Math.min(...xs) > 1 || Math.max(...ys) < -1 || Math.min(...ys) > 1) return;
+    const x0 = Math.max(0, (Math.min(...xs) + 1) / 2 * r.width), x1 = Math.min(r.width, (Math.max(...xs) + 1) / 2 * r.width);
+    const y0 = Math.max(0, (1 - Math.max(...ys)) / 2 * r.height), y1 = Math.min(r.height, (1 - Math.min(...ys)) / 2 * r.height);
+    if (x1 - x0 < 4 || y1 - y0 < 4) return;
+    boxes.push({ id: c.id, label: c.label.toLowerCase(), x: x0, y: y0, w: x1 - x0, h: y1 - y0, xmm: Math.round(c.x), ymm: Math.round(c.y) });
+  });
+  return boxes;
+}
+function camDrawOverlay(boxes) {
+  const cv = document.getElementById("camOverlay");
+  const r = cv.getBoundingClientRect();
+  if (!r.width) return;
+  const dpr = window.devicePixelRatio || 1;
+  if (cv.width !== Math.round(r.width * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, r.width, r.height);
+  const sel = document.getElementById("camColor").value;
+  boxes.forEach((b) => {
+    const hit = sel && b.id === sel;
+    g.strokeStyle = hit ? "#ffd43b" : "#4dabf7";
+    g.lineWidth = hit ? 3 : 2;
+    g.strokeRect(b.x, b.y, b.w, b.h);
+    const text = b.label + " · X " + b.xmm + " Y " + b.ymm;
+    g.font = "600 12px " + getComputedStyle(document.body).getPropertyValue("--font-mono") + ", monospace";
+    const tw = g.measureText(text).width;
+    g.fillStyle = hit ? "#ffd43b" : "#4dabf7";
+    g.fillRect(b.x, Math.max(0, b.y - 16), tw + 8, 16);
+    g.fillStyle = "#0b0d14";
+    g.fillText(text, b.x + 4, Math.max(11, b.y - 4));
+  });
+  const st = document.getElementById("camStatus");
+  if (sel) {
+    const b = boxes.find((x) => x.id === sel);
+    if (b) { st.className = "status-line ok"; st.textContent = "Cubo " + sel + ": X " + b.xmm + " · Y " + b.ymm + " (mm de la mesa)"; }
+    else { st.className = "status-line"; st.textContent = "No veo ningún cubo " + sel + " desde aquí."; }
+  } else {
+    st.className = "status-line";
+    st.textContent = boxes.length ? boxes.length + " objeto(s) en la vista de la cámara." : "No veo cubos desde aquí: acércate o gira el brazo.";
+  }
+}
+function camFrame() {
+  if (!camRenderer) return;
+  camFit();
+  camUpdate();
+  camRenderer.render(scene, cam2);
+  camDrawOverlay(camDetect());
+}
+document.getElementById("camShot").addEventListener("click", () => {
+  if (!camRenderer) return;
+  camFrozen = !camFrozen;
+  const b = document.getElementById("camShot");
+  b.textContent = camFrozen ? "Seguir" : "Foto";
+  if (camFrozen) { camUpdate(); camRenderer.render(scene, cam2); camDrawOverlay(camDetect()); }
+});
+document.getElementById("camDownload").addEventListener("click", () => {
+  if (!camRenderer) return;
+  camUpdate();
+  camRenderer.render(scene, cam2); // mismo tick: el back buffer sigue válido para toDataURL
+  const f = document.getElementById("camFeed"), o = document.getElementById("camOverlay");
+  const t = document.createElement("canvas");
+  t.width = f.width; t.height = f.height;
+  const g = t.getContext("2d");
+  g.drawImage(f, 0, 0, t.width, t.height);
+  if (o.width) g.drawImage(o, 0, 0, t.width, t.height);
+  const a = document.createElement("a");
+  a.href = t.toDataURL("image/png");
+  a.download = "huenit-camara.png";
+  a.click();
+  const st = document.getElementById("camStatus");
+  st.className = "status-line ok"; st.textContent = "Foto descargada (huenit-camara.png).";
+});
+document.getElementById("camColor").addEventListener("change", () => { if (camRenderer && camFrozen) { camDrawOverlay(camDetect()); } });
+
 /* ===================== Interfaz ===================== */
 const EXAMPLES = [
   { id: "saludo", name: "Saludo (asentir 3 veces)", tool: "suction", code:
@@ -1802,6 +1971,24 @@ robot.moveG0(-100, 260, ALTO)   # subir
 robot.laserOff()                # apagar el láser
 robot.goHome()
 print("¡Cuadrado grabado!")
+` },
+  { id: "camara", name: "Cámara: encontrar el cubo rojo", tool: "camera", code:
+`import robot
+
+# La cámara encuentra un cubo por color y el brazo se acerca a mirarlo.
+# Funciones del simulador: la cámara real se programa con ai.py en el módulo.
+vistos = robot.cameraObjects()
+print("Veo", len(vistos), "cubo(s):", vistos)
+
+pos = robot.findColor("rojo")
+if pos == 0:
+    print("No veo el cubo rojo")
+else:
+    print("Cubo rojo en X", pos[0], "Y", pos[1])
+    robot.moveG0(pos[0], pos[1], 50)    # encima del cubo
+    robot.moveG0(pos[0], pos[1], -10)   # bajar a mirarlo de cerca
+    print("¡Hola, cubo rojo!")
+    robot.goHome()
 ` }
 ];
 const DEFAULT = EXAMPLES[1];
@@ -1969,6 +2156,7 @@ function updateTags() {
   let active, label;
   if (S.tool === "pen") { active = penTouching(); label = "Pluma" + (active ? " · dibujando" : " · arriba"); }
   else if (S.tool === "laser") { active = S.laser; label = "Láser" + (active ? " · encendido" : " · apagado"); }
+  else if (S.tool === "camera") { active = true; label = "Cámara · lista"; }
   else if (S.tool === "suction") { active = suctionActive(); label = "Ventosa" + (active ? " · encendida" : " · apagada"); }
   else { active = S.grip === 2; label = "Pinza" + [" · reposo", " · abierta", " · cerrada"][S.grip]; }
   tt.textContent = label;
@@ -2000,7 +2188,7 @@ function renderScene() {
   });
 }
 
-const VIEWS = ["program", "console", "gcode", "teach", "draw", "scene", "ref", "robot"];
+const VIEWS = ["program", "console", "gcode", "teach", "draw", "camera", "scene", "ref", "robot"];
 function showView(id) {
   document.querySelectorAll(".navitem").forEach((t) => {
     if (t.dataset.view === id) t.setAttribute("aria-current", "true");
@@ -2008,7 +2196,7 @@ function showView(id) {
   });
   VIEWS.forEach((v) => { document.getElementById("view-" + v).hidden = v !== id; });
   document.getElementById("armPanel").hidden = id === "ref" || id === "robot";
-  requestAnimationFrame(() => requestAnimationFrame(() => { resize(); drawFit(); }));
+  requestAnimationFrame(() => requestAnimationFrame(() => { resize(); drawFit(); camFit(); }));
 }
 document.querySelectorAll(".navitem").forEach((t) => t.addEventListener("click", () => showView(t.dataset.view)));
 
@@ -2074,7 +2262,8 @@ applyUiTheme();
 initScene();
 resetScene();
 setMode();
-window.HUENIT = { strokeCount: () => (strokesGroup ? strokesGroup.children.length : 0) };
+camInit();
+window.HUENIT = { strokeCount: () => (strokesGroup ? strokesGroup.children.length : 0), camBoxes: () => camDetect().length };
 })();
 </script>
 

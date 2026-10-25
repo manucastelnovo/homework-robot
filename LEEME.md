@@ -28,7 +28,7 @@ La página se divide en una barra lateral, una sección principal y, a la
 derecha, la escena 3D con el panel de movimiento manual, que se ve en todas
 las secciones excepto «Funciones» y «Robot». La barra lateral lleva la
 navegación, el selector de herramienta, un botón de tema claro/oscuro y el
-estado de la conexión. Se salta de sección con Ctrl+1…8 (Cmd+1…8 en Mac), en
+estado de la conexión. Se salta de sección con Ctrl+1…9 (Cmd+1…9 en Mac), en
 este orden:
 
 1. **Programar** — editor Python con los ejemplos y los botones Ejecutar / Detener / Reiniciar.
@@ -36,9 +36,10 @@ este orden:
 3. **Comandos al robot** — consola G-code interactiva.
 4. **Teach & Play** — grabador de macros.
 5. **Dibujar** — lienzo para dibujar a mano alzada y que el brazo reproduzca el trazo.
-6. **Escena** — posición de los objetos en la mesa.
-7. **Funciones** — referencia de la librería `robot`.
-8. **Robot** — ejecutar el mismo código en el brazo real y conexión por USB.
+6. **Cámara** — vista en primera persona del brazo con detección de cubos por color.
+7. **Escena** — posición de los objetos en la mesa.
+8. **Funciones** — referencia de la librería `robot`.
+9. **Robot** — ejecutar el mismo código en el brazo real y conexión por USB.
 
 Al ejecutar un programa (o si salta un error) la vista cambia sola a
 **Consola** para que se vea lo que pasa.
@@ -77,6 +78,13 @@ Además de ejecutar programas de Python, la página permite manejar el brazo a m
   **Copiar Python** y **Copiar G-code** exportan el dibujo como programa o
   comandos listos para el programa Huenit. El lienzo se guarda solo en el
   navegador.
+- **Cámara** (herramienta «Cámara (visión)» y sección «Cámara»): la sección
+  muestra lo que ve la cámara del brazo en primera persona, con cajas de
+  detección sobre los cubos visibles; el selector de color localiza un cubo y
+  da sus coordenadas de mesa, **Foto** congela el frame y **Descargar PNG**
+  guarda la imagen. En los programas, `robot.cameraObjects()` lista los cubos
+  vistos y `robot.findColor("rojo")` da su posición (funciones del simulador:
+  la cámara real se programa con `ai.py` dentro del módulo y no usa G-code).
 - **Pluma** (selector de herramienta «Portabolígrafos»): cuando la punta toca
   la mesa el brazo dibuja en ella, con cualquier movimiento (programa,
   «Mover», consola o macro). El ejemplo «Pluma: dibujar un cuadrado» traza un
