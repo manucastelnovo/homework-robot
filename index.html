@@ -556,6 +556,9 @@ const TOOL = {
 };
 const HOME = { x: 0, y: 180, z: 0 };
 const CUBE = 25;
+// Velocidad base de la simulación a 1× (mm/s). El robot real la fija su firmware;
+// con el USB conectado se sincroniza hasta el 100% con M220 (ver syncRealSpeed).
+const BASE_SPEED = 240;
 
 /* ===================== Estado ===================== */
 const START_CUBES = [
@@ -982,7 +985,7 @@ function moveTo(target, mode, mul) {
     if (!checkXYZ(p.x, p.y, p.z)) { showGhost(p); throw new Error("No reachable: el camino hasta (" + fmt(b.x) + ", " + fmt(b.y) + ", " + fmt(b.z) + ") pasa por (" + p.x.toFixed(0) + ", " + p.y.toFixed(0) + ", " + p.z.toFixed(0) + "), fuera del alcance del brazo. Agrega un punto intermedio" + (mode === "linear" ? " o usa moveG0 (arco)." : ".")); }
     len += Math.hypot(p.x - prev.x, p.y - prev.y, p.z - prev.z); prev = p;
   }
-  const dur = Math.max(220, (len / (150 * S.speed * (mul || 1))) * 1000);
+  const dur = Math.max(40, (len / (BASE_SPEED * S.speed * (mul || 1))) * 1000);
   if (!renderer) { S.pos = { ...b }; pose(); return wait(dur); }
   return new Promise((res, rej) => {
     let t0 = null;
@@ -999,6 +1002,52 @@ function moveTo(target, mode, mul) {
         if (hit) { anim = null; drawReach(); renderScene(); rej(new Error(hit)); return; }
         penTrack();
         if (k >= 1) { S.pos = { ...b }; pose(); penTrack(); anim = null; drawReach(); renderScene(); res(); }
+      },
+      cancel() { anim = null; rej(STOP); }
+    };
+  });
+}
+// Igual que moveTo, pero recorre toda una polilínea en una sola animación:
+// los trazos de dibujo avanzan fluidos, sin parada entre segmentos de 1 mm.
+function movePath(pts, z, mul) {
+  const w = [{ x: S.pos.x, y: S.pos.y, z }, ...pts.map((p) => ({ x: p.x, y: p.y, z }))];
+  for (const p of w) {
+    if (!checkXYZ(p.x, p.y, p.z)) { showGhost(p); throw new Error("No reachable: el brazo no puede llegar a (" + fmt(p.x) + ", " + fmt(p.y) + ", " + fmt(p.z) + ")."); }
+  }
+  const segs = [];
+  let total = 0;
+  for (let i = 1; i < w.length; i++) {
+    const a = w[i - 1], b = w[i];
+    for (let s = 1; s <= 8; s++) {
+      const p = { x: a.x + (b.x - a.x) * s / 8, y: a.y + (b.y - a.y) * s / 8, z: a.z + (b.z - a.z) * s / 8 };
+      if (!checkXYZ(p.x, p.y, p.z)) { showGhost(p); throw new Error("No reachable: el camino del trazo pasa por (" + fmt(p.x) + ", " + fmt(p.y) + ", " + fmt(p.z) + "), fuera del alcance del brazo."); }
+    }
+    const L = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+    segs.push({ a, b, L0: total, L });
+    total += L;
+  }
+  if (total <= 0) return Promise.resolve();
+  const dur = Math.max(120, (total / (BASE_SPEED * S.speed * (mul || 1))) * 1000);
+  if (!renderer) { const l = segs[segs.length - 1]; S.pos = { ...l.b }; pose(); penTrack(); return wait(dur); }
+  return new Promise((res, rej) => {
+    let t0 = null;
+    anim = {
+      step(t) {
+        if (t0 === null) t0 = t;
+        const k = Math.min(1, (t - t0) / dur);
+        const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        const d = e * total;
+        let seg = segs[segs.length - 1];
+        for (const s of segs) { if (d <= s.L0 + s.L) { seg = s; break; } }
+        const kk = seg.L > 0 ? Math.min(1, (d - seg.L0) / seg.L) : 1;
+        S.pos = { x: seg.a.x + (seg.b.x - seg.a.x) * kk, y: seg.a.y + (seg.b.y - seg.a.y) * kk, z: seg.a.z + (seg.b.z - seg.a.z) * kk };
+        pose();
+        if (suctionActive()) tryAttach();
+        pushTrail();
+        const hit = collision();
+        if (hit) { anim = null; drawReach(); renderScene(); rej(new Error(hit)); return; }
+        penTrack();
+        if (k >= 1) { const l = segs[segs.length - 1]; S.pos = { ...l.b }; pose(); penTrack(); anim = null; drawReach(); renderScene(); res(); }
       },
       cancel() { anim = null; rej(STOP); }
     };
@@ -1090,6 +1139,16 @@ async function sendSeq(seq, line) {
     if (Serial.connected) last = await Serial.send(s);
   }
   return last;
+}
+// Con el robot conectado, la velocidad elegida también se aplica al brazo real.
+// M220 se limita al 100%: por encima solo acelera la simulación (el firmware marca su máximo).
+function syncRealSpeed() {
+  if (!Serial.connected) return;
+  const pct = Math.min(100, Math.max(10, Math.round(S.speed * 100)));
+  Serial.send("M220 S" + pct, true).then(
+    () => info("  ↳ Velocidad al " + pct + "% (M220) también en el robot."),
+    () => warn("  ↳ El robot no acepta M220: la velocidad solo se aplicará en la simulación.")
+  );
 }
 function xyzArgs(name, args) {
   let v = args;
@@ -1225,6 +1284,7 @@ async function run() {
   saveDraft();
   S.running = true; stopFlag = false; toolWarned = {}; waiters.clear();
   setRunning(true); clearMarks();
+  syncRealSpeed();
   showView("console");
   document.getElementById("log").innerHTML = "";
   document.getElementById("gcodeLog").innerHTML = ""; S.gcodeN = 0; document.getElementById("gcodeCount").textContent = "0";
@@ -1507,6 +1567,7 @@ async function playMacro() {
     return;
   }
   macro.busy = true; S.running = true; stopFlag = false; setRunning(true);
+  syncRealSpeed();
   showView("teach");
   info("▶ Macro: reproduciendo " + macro.steps.length + " pasos…");
   try {
@@ -1666,13 +1727,20 @@ async function playDrawing() {
     warn("  ↳ Para dibujar se usa la herramienta Pluma: se cambió automáticamente.");
   }
   draw.busy = true; S.running = true; stopFlag = false; setRunning(true);
+  syncRealSpeed();
   showView("draw");
   info("✎ Dibujando " + strokes.length + " trazo(s)" + (Serial.connected ? " en el robot y la simulación…" : " en la simulación…"));
   try {
     for (const s of strokes) {
       await API.moveG0([s[0].x, s[0].y, DRAW.alto], null);
       await API.moveG0([s[0].x, s[0].y, DRAW.mesa], null);
-      for (let i = 1; i < s.length; i++) await API.moveG1([s[i].x, s[i].y, DRAW.mesa], null);
+      const simPath = movePath(s, DRAW.mesa);
+      for (let i = 1; i < s.length; i++) {
+        const line = "G1 X" + fmt(s[i].x) + " Y" + fmt(s[i].y) + " Z" + fmt(DRAW.mesa);
+        gcode(line, null);
+        if (Serial.connected) await Serial.send(line);
+      }
+      await simPath;
       const l = s[s.length - 1];
       await API.moveG0([l.x, l.y, DRAW.alto], null);
     }
@@ -2041,12 +2109,30 @@ document.getElementById("runBtn").addEventListener("click", run);
 document.getElementById("stopBtn").addEventListener("click", stop);
 document.getElementById("resetBtn").addEventListener("click", () => { if (!S.running) { resetScene(); clearMarks(); } });
 document.getElementById("estopBtn").addEventListener("click", eStop);
-document.querySelectorAll("[data-jog]").forEach((b) => b.addEventListener("click", () => {
-  const d = b.dataset.jog;
-  if (d === "home") { goHomeUI(); return; }
-  const v = d.split(",").map(Number), st = S.jogStep;
-  jog(v[0] * st, v[1] * st, (v[2] || 0) * st);
-}));
+document.querySelectorAll("[data-jog]").forEach((b) => {
+  let holdDelay = null, holdTick = null;
+  const go = () => {
+    const d = b.dataset.jog;
+    if (d === "home") { goHomeUI(); return; }
+    const v = d.split(",").map(Number), st = S.jogStep;
+    jog(v[0] * st, v[1] * st, (v[2] || 0) * st);
+  };
+  const stopHold = () => { clearTimeout(holdDelay); clearInterval(holdTick); holdDelay = holdTick = null; };
+  b.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    b.__ptr = true; // el click que sigue al pointerup queda consumido
+    stopHold();
+    go(); // mover al pulsar, no al soltar
+    if (b.dataset.jog !== "home") {
+      holdDelay = setTimeout(() => { holdTick = setInterval(go, 140); }, 320);
+    }
+  });
+  ["pointerup", "pointerleave", "pointercancel"].forEach((t) => b.addEventListener(t, stopHold));
+  b.addEventListener("click", () => {
+    if (b.__ptr) { b.__ptr = false; return; } // pulsación real ya atendida por pointerdown
+    go(); // activación por teclado (Enter/Espacio)
+  });
+});
 document.getElementById("jogStep").addEventListener("change", (e) => { S.jogStep = parseFloat(e.target.value); });
 const jogSpeedEl = document.getElementById("jogSpeed");
 jogSpeedEl.addEventListener("input", () => {
@@ -2166,6 +2252,7 @@ function updateTags() {
 }
 function renderScene() {
   const el = document.getElementById("sceneList"); if (!el) return;
+  if (document.getElementById("view-scene").hidden) return; // la lista se reconstruye al abrir la sección
   el.innerHTML = "";
   const T = TOOL[S.tool].T;
   S.cubes.forEach((c) => {
@@ -2195,6 +2282,7 @@ function showView(id) {
     else t.removeAttribute("aria-current");
   });
   VIEWS.forEach((v) => { document.getElementById("view-" + v).hidden = v !== id; });
+  if (id === "scene") renderScene();
   document.getElementById("armPanel").hidden = id === "ref" || id === "robot";
   requestAnimationFrame(() => requestAnimationFrame(() => { resize(); drawFit(); camFit(); }));
 }
