@@ -56,8 +56,10 @@ Además de ejecutar programas de Python, la página permite manejar el brazo a m
   botón de casa. También con el teclado: las flechas mueven en X/Y,
   Re Pág/Av Pág en Z e Inicio vuelve a casa. El selector **Paso** fija los
   milímetros de cada movimiento (1, 5, 10 o 25 mm) y el deslizador
-  **Velocidad** lo hace más lento (en el robot conectado se intenta enviar
-  como `M220`, si el firmware lo acepta).
+  **Vel. flechas** ajusta la velocidad de esos desplazamientos. El deslizador
+  **Velocidad** (parte superior del panel) fija la velocidad general del brazo
+  en todos los movimientos (programas, dibujos, macros y desplazamientos); en
+  el robot conectado se aplica en vivo como `M220`, si el firmware lo acepta.
 - **Consola G-code** (sección «Comandos al robot»): escribe un comando y pulsa
   Enter para probarlo en la simulación y, si está conectado, en el brazo.
   Entiende `help` (lista de comandos) y `clear` (limpiar), y guarda el

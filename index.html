@@ -208,6 +208,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
 .jogopts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .jogopts input[type="range"] { width: 110px; }
 .jogval { font-family: var(--font-mono); font-size: 0.76rem; color: var(--muted); min-width: 3.2em; }
+.speedrow input[type="range"] { flex: 1; min-width: 120px; }
 .joghint { font-size: 0.72rem; color: var(--muted); }
 
 #gcodeLog { flex: 1; overflow: auto; padding: 8px 12px; }
@@ -312,10 +313,12 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
           <span class="grow"></span>
           <label class="lbl" for="speedSel">Velocidad</label>
           <select id="speedSel">
-            <option value="0.5">0.5×</option>
-            <option value="1" selected>1×</option>
-            <option value="2">2×</option>
-            <option value="4">4×</option>
+            <option value="0.25">25%</option>
+            <option value="0.5">50%</option>
+            <option value="0.75">75%</option>
+            <option value="1" selected>100%</option>
+            <option value="2">2× (solo sim)</option>
+            <option value="4">4× (solo sim)</option>
           </select>
         </div>
       </div>
@@ -476,6 +479,11 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
             </div>
             <div class="stage-help">Arrastra para girar · rueda para acercar</div>
           </div>
+          <div class="bar sep speedrow">
+            <label class="lbl" for="moveSpeed" title="Velocidad de todos los movimientos: programas, dibujos, macros y desplazamientos. Con el robot conectado se aplica en vivo (M220).">Velocidad</label>
+            <input type="range" id="moveSpeed" min="10" max="100" step="5" value="100" aria-label="Velocidad general del brazo">
+            <span class="jogval" id="moveSpeedVal">100%</span>
+          </div>
           <div class="bar sep jogbar">
             <span class="lbl" id="jogLabel">Mover</span>
             <div class="jogpad" role="group" aria-labelledby="jogLabel">
@@ -497,7 +505,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunk)
                 <option value="10">10 mm</option>
                 <option value="25">25 mm</option>
               </select>
-              <label class="lbl" for="jogSpeed">Velocidad</label>
+              <label class="lbl" for="jogSpeed" title="Velocidad extra de los movimientos con las flechas">Vel. flechas</label>
               <input type="range" id="jogSpeed" min="10" max="100" step="5" value="100">
               <span class="jogval" id="jogSpeedVal">100%</span>
             </div>
@@ -2104,7 +2112,28 @@ function setTool(t) {
   pose(); updateTags(); renderScene();
 }
 document.getElementById("toolSel").addEventListener("change", (e) => setTool(e.target.value));
-document.getElementById("speedSel").addEventListener("change", (e) => { S.speed = parseFloat(e.target.value); });
+// Velocidad general (S.speed) en porcentaje del brazo: se controla desde el panel
+// (siempre visible) o desde el selector de Programar, y ambos se sincronizan.
+// Por encima del 100% el selector ofrece 2×/4×, que solo aceleran la simulación.
+const speedSelEl = document.getElementById("speedSel");
+const moveSpeedEl = document.getElementById("moveSpeed");
+function setSpeed(v, src) {
+  v = Math.min(4, Math.max(0.1, v));
+  S.speed = v;
+  const pct = Math.round(v * 100);
+  moveSpeedEl.value = Math.min(100, Math.max(10, pct));
+  document.getElementById("moveSpeedVal").textContent = pct + "%";
+  if (src !== speedSelEl) {
+    let opt = Array.from(speedSelEl.options).find((o) => parseFloat(o.value) === v);
+    if (!opt) { opt = new Option(pct + "%", String(v)); speedSelEl.add(opt); }
+    speedSelEl.value = String(v);
+  }
+  store("huenit-sim-speed", String(v));
+}
+speedSelEl.addEventListener("change", (e) => setSpeed(parseFloat(e.target.value), speedSelEl));
+moveSpeedEl.addEventListener("input", () => setSpeed(parseInt(moveSpeedEl.value, 10) / 100, moveSpeedEl));
+moveSpeedEl.addEventListener("change", () => syncRealSpeed()); // el robot la aplica en vivo
+{ const saved = parseFloat(store("huenit-sim-speed")); if (isFinite(saved)) setSpeed(saved); }
 document.getElementById("runBtn").addEventListener("click", run);
 document.getElementById("stopBtn").addEventListener("click", stop);
 document.getElementById("resetBtn").addEventListener("click", () => { if (!S.running) { resetScene(); clearMarks(); } });

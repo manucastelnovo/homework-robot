@@ -57,8 +57,10 @@ Besides running Python programs, the page lets you drive the arm by hand:
   and a home button. Also from the keyboard: arrow keys move in X/Y,
   Page Down/Page Up in Z, and Home returns to the home position. The
   **Paso** (Step) selector sets the millimeters per move (1, 5, 10 or 25 mm)
-  and the **Velocidad** (Speed) slider slows it down (with a connected robot
-  it tries to send it as `M220`, if the firmware accepts it).
+  and the **Vel. flechas** slider adjusts the speed of those jogs. The
+  **Velocidad** (Speed) slider (top of the panel) sets the arm's overall speed
+  for every movement (programs, drawings, macros and jogs); with a connected
+  robot it applies live as `M220`, if the firmware accepts it.
 - **G-code console** (section «Comandos al robot»): type a command and press
   Enter to try it in the simulation and, if connected, on the arm. It
   understands `help` (command list) and `clear`, and keeps history with the
